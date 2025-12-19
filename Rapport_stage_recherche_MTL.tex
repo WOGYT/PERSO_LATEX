@@ -1,0 +1,229 @@
+\documentclass[12pt]{article}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz, lipsum,lmodern}
+\usepackage[most]{tcolorbox}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{bm}
+\usepackage[french]{babel}
+\geometry{hmargin=2.25cm,vmargin=2cm}
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{4}
+\title{Rapport initiation à la recherche: l'Apprentissage Multi-Tâche}
+\author{Gabriel Legout}
+\date{\today}
+
+%\hypersetup{colorlinks=true,linkcolor=Blue,urlcolor=Blue}
+%\urlstyle{sf}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Dans ce document, nous commençons par décrire et analyser des techniques d'apprentissage multi-tâche dans le cadre linéaire en se basant sur l'article \og Provable Meta-Learning of linear representation \fg{} et en explicitant certains théorèmes et certaines techniques qui permettent de récupérer efficacement les paramètres d'estimation de notre modèle.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Introduction}
+Commençons d'abord par réintroduire les méthodes de regression linéaire et multi-linéaire ainsi que les différents enjeux associés dans les méthodes d'apprentissages.\\
+
+\noindent D'abord, de manière classique, on peut noter un modèle de regression linéaire unidimensionel de la manière suivant:
+$$
+y_i = x_i\alpha + \epsilon_i
+$$
+Avec, $y_i \in \mathbb{R}, x_i \in \mathbb{R}, \epsilon_i \in \mathbb{R}$. On a donc une liste de points $(x_i)_{i \in \left[|0, n| \right]}, n \in \mathbb{N}$ auquel on associe un unique $\alpha$ qui va être calculer selon une méthode quelconque (on peut chercher $\alpha$ tel qu'il minimise la somme résiduelle des carrés, auquel cas on aura $y_i$ qui sera une prédiction au sens des moindres carrés) et va nous permettre de prédire un $y_i$ qui n'est pas dans le domaine de points initial mais qui répond aux mêmes contraintes sur la tâche considérée.\\
+Comme tous les modèles de regression, il faut connaître la fonction suivi par les donnés afin de pouvoir les modéliser, et en particulier, il faut que les donnés suivent une même "fonction" qui est exprimable dans le modèle.\\
+On constate facilement qu'on peut étendre cette méthode à de la regression sur des donnés plus importantes. On peut par exemple condidérer des vecteurs à la place des scalaire et avoir un modèle multi-dimensionnel. On peut exprimer ce type de modèles sous cette forme:
+$$
+y_i = 
+$$
+On peut encore une fois essayer de généraliser ce modèle en considérant l'hypothèse selon laquelle les données partage des caractéristiques commune qui pourrait permettre de considérer un même modèle faisant des prédictions sur des tâches différentes à partir des mêmes donnés. Dans la suite, on va considérer que chaque lien entre donnés est linéaire et que nos donnés contiennent suffisament d'information pour faire des la prédictions sur des tâches différentes. On aboutit alors au modèle suivant.
+$$
+y_i = 
+$$
+Cependant, on voit que ce modèle aboutit à un nombre considérable de points ce qui peut entrainer au coût de calcul énorme. De plus, avec l'hypothèse selon laquelle les entrées contiennent suffisament d'information pour faire de la prédiction sur plusieurs tâches, il parait raisonable de considérer que certaines de ces tâches contiennent des caractéristiques commune parmi les entrées. Ce qu'on peut faire c'est imaginer avoir des paramètres communs à toutes les tâches et avoir des coefficients d'ajustement, par tâches, pour permettre une meilleure estimation. 
+\\\\
+
+
+Maintenant, on va donner puis expliquer dans les grandes lignes le modèle sur lequel nous travaillons:
+$$
+y_i  = {\bf x}^T_i{\bf B}{\bm \alpha}_{t(i)} + \epsilon_i
+$$
+
+\noindent Dans ce modèle, on dispose d'un vecteur d'entrée comprenant $d$ variables et de vecteurs de paramètres ${\bm \alpha}_{t(i)}$ spécifiques à une tâche $i$ permettant de prévoir la sortie $y_i$.\\
+De plus, contrairement à un modèle linéaire classique, on dispose d'une matrice ${\bf B}$, \textbf{commune} à toutes les tâches qui comprend des caractéristiques communes à plusieurs tâches permettant de mutualiser l'apprentissage et la prédiction $y_i$. Les indices $t(i)$, permettent simplement d'indicer les tâches. \\
+
+Tout l'enjeu de l'article et de montrer qu'il existe des méthodes simples, sous certaines bonnes hypothèses, pour récupérer un estimateur $\hat {\bf B}$ de la matrice ${\bf B}$ efficacement et puis de montrer qu'on a des meilleures estimations avec un coût plus faible qu'en cherchant uniquement des ${\bm \alpha}_{t}$.\\
+L'article se décompose donc en deux grandes parties: d'abord la phase de "Meta-Learning" où on va essayer de trouver $\hat {\bf B}$ avec suffisament de précision et avec un algortihme simple et efficace, puis la phase de "Meta-Test" qui va permettre de montrer que la calcul de $\hat B$ va permettre de transférer une part de l'apprentissage à une nouvelle tâche ${\bm \alpha}_{t+1}$. 
+
+\subsection{Conventions}
+Par soucis de clarté et contrairement à l'article, on va utiliser que $\mathbb{R}^n$ est un n-uplet de la forme ${\bf x} \in \mathbb{R}^n$ tel que ${\bf x} = (x_1, ..., x_n)$ et donc dans ce cas, ${\bf x}_i \in M_{d, 1}(\mathbb{R})$ et donc ${\bf x}^T_i \in M_{1, d}(\mathbb{R})$. On a donc, avec ces conventions, ${\bf B} \in M_{d, r}(\mathbb{R})$ et ${\bm \alpha}_{t(i)}\in M_{r, 1}(\mathbb{R})$ afin d'avoir $y_i \in \mathbb{R}$ et $\epsilon_i \in \mathbb{R}$. \\
+
+\noindent On s'autorisera parfois à noter $t(i) = t$ qui restera implicitement une fonction de $i$ afin d'alléger les notations.\\
+Les $({\bf x}_i)$ représentent des vecteurs obervations. Quand ça sera nécessaire (pour choisir un représentant pour une espérance car ils suivent tous la même loi par exemple), on s'autorisera à noter ${\bf x}_1 = {\bf x}$ un vecteur quelconque de $({\bf x}_i)$ pour alléger encore une fois les notations.\\
+
+\noindent Ensuite, dans tout ce document, le symbol $\hat{ }$ (chapeau) au dessus d'une lettre designera un estimateur de l'objet considéré. Des théorèmes comme la loi forte des grands nombres  nous assurent par exemple que la moyenne empirique est un estimateur convergent de l'espérance d'une variable aléatoire (convergence presque sûre) mais nous passerons sur le détail des convergences dans la suite de ce texte et on supposera que nous manipulerons uniquement des estimateurs convergent et on notera donc directement ces estimateurs avec un $\hat{ }$ sans plus de justifications sauf quand il y aura des ambiguités.
+
+\section{Méthodes et hypothèses utilisés dans l'article}\label{Méthode_hypo}
+
+Nous allons ici exposer les hypothèses faites sur le modèles et sur les entrées ainsi que des méthodes générales qui vont être utiliser pour montrer les résultats important tout au long de l'article.
+
+\subsection{La méthode des moments}\label{moments}
+Le but de la méthode des moments est d'estimer un paramètre $\lambda$ en remplaçant son moment théorique par un moment empirique. On a alors que le moment empirique de la variable aléatoire converge presque-sûrement vers l'espérance de la variable aléatoire par la loi forte des grands nombres.\\
+Par exemple: Supposons que $X$ suit une loi exponentielle de paramètre $\lambda$, m = $\mathbb{E}[X]= \frac{1}{\lambda}$ alors on a pour n suffisament grand: 
+$$
+\overline{X} = \frac{1}{n} \sum_{i=1}^{n} x_i \quad \text{et} \quad \overline{X} = \hat m
+$$
+D'où
+$$
+\frac{1}{\hat \lambda} = \overline{X} \Leftrightarrow \hat \lambda = \frac{1}{\overline{X}}
+$$
+
+\subsection{Les hypothèses 1 et 2}\label{hypothèses}
+L'hypothèse d'avoir les ${\bf x}_i$ centrés réduits est nécessaire à presque toutes les preuves pour simplifier les moments théoriques d'ordre 1 ou simplifier par l'identité les produits ${\bf x}{\bf x}^T$ dans des espérances. De plus, on considère qu'ils sont indépendants et identiquement distribués (iid).\\
+L'hypothèse 2 permet de garantir que les tâches ne sont pas trop différentes et que donc il est possible de reconstruire la matrice $\bf B$ (qu'il y ait suffisament d'information, ou de signal si on parle de reconstruction de phase, par rapport au bruit)\\
+L'hypothèse de sous-exponentielle permet d'appliquer des inégalités de concentration.\\
+Pour l'utiliser, il faut alors disposer de l'expression de $\mathbb{E}$ où remplacer la valeur de l'espérance par la valeur empirique et devoir inverser l'espérance (ou en produire une estimation.)
+
+\section{Détail algorithme 1: Calcul et borne d'un estimateur de B}
+On va donc décrire et expliciter ici certains points des preuves et de la méthode qui va nous permettre de calculer $\hat {\bf B}$.
+
+\subsection{Algorithme 1}\label{algo1}
+L'algorithme 1 nous dit que faire une décomposition en valeurs singulières (ici la matrice est évidement carré symétrique et même définie positive donc cela revient à la diagonaliser en prenant les valeurs propres dans le sens décroissant par le théorème spectral) de la matrice $M = \frac{1}{n} \sum_{i=1}^{n}y^2_i{\bf x}_i{\bf x}^T_i$ on obtient $\hat {\bf B}$ comme matrice de la base dans laquelle $M$ est diagonale.\\
+
+On peut alors se poser deux questions: pourquoi $M$ permet de construire un estimateur $\hat {\bf B}$ de ${\bf B}$ et avec quelle précision le fait-elle ?
+
+\subsubsection{Un retour sur la preuve du Lemme 2} 
+Le lemme 2 nous dit, qu'en supposant les hypothèses 1 et 2 décrites à \ref{hypothèses} et en supposant en plus que les ${\bf x}_i$ sont gaussiens (loi normale d'espérance nulle et de variance égale à l'identité) on a:
+$$
+\mathbb{E}\left[\frac{1}{n} \sum_{i=1}^{n}y^2_i{\bf x}_i{\bf x}^T_i\right] = 2\overline{\Gamma} + (1+ \text{tr}{(\overline{\Gamma})})\text{I}_d
+$$
+Avec $\overline{\Gamma} = \frac{1}{n} \sum_{i=1}^{n} \Gamma_i$ et $\Gamma_i = {\bf B}{\bm \alpha}_{t} {\bm \alpha}^T_{t}{\bf B}^T$.
+On définie en plus $\overline{\Lambda} = \frac{1}{n} \sum_{i=1}^{n}{\bm \alpha}_{t} {\bm \alpha}^T_t$ \\
+\textbf{Preuve}:\\
+On va commencer par remarquer que $y_i \in \mathbb{R}$ donc $y_i = y^T_i$ et en particulier $y^2_i = y_iy^T_i$ (1) et si on a une famille $({\bf z}_i)$ des vecteurs qui suivent la même loi et sont indépendants et identiquement distribués, si $\overline{{\bf z}} = \frac{1}{n} \sum_{i=1}^{n} {\bf z}_i$ alors $\mathbb{E}[\overline{{\bf z}}] = \mathbb{E}[{\bf z}]$ (2). \\
+Maintenant en utlisant (1):
+$$
+\mathbb{E}[\frac{1}{n} \sum_{i=1}^{n}y^2_i{\bf x}_i{\bf x}^T_i] = \mathbb{E}[\frac{1}{n} \sum_{i=1}^{n}y_iy^T_i{\bf x}_i{\bf x}^T_i] = \mathbb{E}[\frac{1}{n} \sum_{i=1}^{n}({\bf x}^T_i {\bf B}{\bm \alpha}_t {\bm \alpha}^T_t{\bf B}^T{\bf x}_i + \epsilon_i \epsilon^T_i) {\bf x}_i{\bf x}^T_i]
+$$
+Puis en développant:
+$$
+\mathbb{E}[(\frac{1}{n} \sum_{i=1}^{n}{\bf x}^T_i {\bf B}{\bm \alpha}_t {\bm \alpha}^T_t{\bf B}^T{\bf x}_i {\bf x}_i{\bf x}^T_i) + (\frac{1}{n} \sum_{i=1}^{n} \epsilon_i \epsilon^T_i {\bf x}_i{\bf x}^T_i)] = \mathbb{E}[{\bf x}^T(\frac{1}{n} \sum_{i=1}^{n}{\bf B}{\bm \alpha}_t {\bm \alpha}^T_t{\bf B}^T){\bf x}{\bf x}{\bf x}^T] + \mathbb{E}[\epsilon \epsilon^T{\bf x}{\bf x}^T]
+$$
+Et comme d'une part on identifie $\overline{\Gamma}$ et de l'autre on utilise (2) car on vérifie les hypothèses 1 (en particulier que les $\epsilon_i$ et ${\bf x}_i$ sont indépendants) et 2, on a finalement:
+$$
+\mathbb{E}[\frac{1}{n} \sum_{i=1}^{n}y^2_i{\bf x}_i{\bf x}^T_i] = \mathbb{E}[{\bf x}^T\overline{\Gamma}{\bf x}{\bf x}{\bf x}^T] + \text{I}_d
+$$
+On a: $\overline{\Gamma} = {\bf B}\overline{\Lambda}{\bf B}^T$ comme ${\bf B}$ est une matrice orthogonale. Cependant, elle n'est pas orthogonal au sens conventionnel car elle n'est pas carré. On peut éventuellement remarquer que c'est toujours possible, même si la matrice n'est pas carré de considérer que les vecteurs colonnes sont orthogonaux (ils sont tous de même dimension) et si $r < d$, on a trivialement une famille libre de $r$ vecteurs dans $\mathbb{R}^d$ (si $r>d$, ça ne marche évidement pas, mais ici on suppose qu'on a plus de points que de tâches sinon ça n'a pas de sens.) \\
+On peut alors considérer $\overline{\Gamma} = \begin{bmatrix}
+{\bf B} & {\bf B}_{\perp}
+\end{bmatrix}
+\begin{bmatrix}
+\overline{\Lambda} & 0\\
+0 & 0
+\end{bmatrix}
+\begin{bmatrix}
+{\bf B}^T \\
+{\bf B}^T_{\perp}
+\end{bmatrix} = \tilde{{\bf B}}\begin{bmatrix}
+\overline{\Lambda} & 0\\
+0 & 0
+\end{bmatrix} \tilde{{\bf B}}^T$ tel que $\tilde{{\bf B}}$ est bien une matrice carrée et orthogonale (qui existe par le théorème de la base incomplète car nous sommes en dimension finie) qui est simplement l'expression de $\overline{\Gamma}$ dans l'espace $M_{d,d}(\mathbb{R})$ (qui contient $M_{d,r}(\mathbb{R})$) et qui va simplement ajouter des $0$ au spectre de $\overline{\Gamma}$ (et donc celui de $\overline{\Lambda}$). Or ${\bf B}$ est de rang au plus $r$ et on s'intéresse seulement aux $r$-premières valeurs propres donc ça ne change pas les propriétés de notre décomposition. On utilisera donc $\bf B$ dans la suite à la place de $\tilde{{\bf B}}$ sans que cela ne change quelque chose à la validité des calculs car on a simplement besoin de vérifier l'égalité des spectres et c'est chose faite.\\
+Maintenant, une matrice orthogonale est une matrice de changement de base orthogonale, donc $\text{Sp}(\overline{\Gamma}) = \text{Sp}(\overline{\Lambda})$ et donc on peut dire "quelles se comportent de la même manière" au sens des transformations dans l'espace. On va donc noter $\sigma_i$ leurs valeurs propres. On va noter $Q \in \mathbb{O}_d(\mathbb{R})$ la matrice de la base orthogonale dans laquelle $\overline{\Lambda}$ est diagonale.
+$$
+\mathbb{E}[{\bf x}^T\overline{\Lambda}{\bf x}{\bf x}{\bf x}^T] = \mathbb{E}[{\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r)Q^T{\bf x}{\bf x}{\bf x}^T]
+$$
+Mais, il faut garder à l'esprit que ${\bf x}^T\overline{\Lambda}{\bf x}^T \in \mathbb{R}$ et donc que ${\bf x}^TQ \in \mathbb{R}^d$. Par conséquent, on peut écrire ${\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r)Q^T{\bf x} = {\bf x}^TQ({\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r))^T$ et si on note $Q = ({\bf v}_1, ..., {\bf v}_ r)$, on a ${\bf x}^TQ = ({\bf x}^T{\bf v}_1, ..., {\bf x}^T {\bf v}_r)$ et donc ${\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r) = (\sigma_1 {\bf x}^T{\bf v}_ 1, ..., \sigma_r {\bf x}^T {\bf v}_ r)$. \\
+Donc comme ${\bf x}^TQ({\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r))^T$ est un produit scalaire de deux vecteurs réel (car ${\bf x}^T\sigma_i \in \mathbb{R}$): ${\bf x}^T\overline{\Lambda}{\bf x} = \sum_{i = 1}^r \sigma_i ({\bf x}^T{\bf v}_ i)^2$ et donc par linéarité de l'espérance:
+$$
+\mathbb{E}[{\bf x}^T\overline{\Gamma}{\bf x}{\bf x}{\bf x}^T] = \sum_{i = 1}^r \sigma_i \mathbb{E}[({\bf x}^T{\bf v}_ i)^2{\bf x}{\bf x}^T]
+$$
+Il suffit maitenant de trouver un moyen de calculer $\mathbb{E}[({\bf x}^T{\bf v}_ i)^2{\bf x}{\bf x}^T]$ pour conclure. Or dans l'article, on explique que le fait que les ${\bf x}_i$ soient iid et gaussiens nous permet de dire que la gausienne est isotropique (aligné selon un axe du repère) et que sa covariance s'écrit $\Sigma = \sigma^2\text{I}_d$ et comme dans notre cas, la matrice de covariance est multiplié par un réel ${\bf x}^T{\bf v}_i$ qui dépend de ${\bf x}$ (donc qu'on ne peut pas sortir de l'espérance) et d'un vecteur d'une base orthogonal, "il suffit" de calculer $\mathbb{E}[({\bf x}^Te_ 1)^2{\bf x}{\bf x}^T]$ avec $e_1$ un vecteur de la base canonique de $\mathbb{R}^d$ et ensuite de multiplier par ${\bf v}_ i$ ce qui aura pour effet de faire une rotation sur la distribution et de retrouver celle qui nous intérèsse. Évidement, ce n'est pas immédiat et car je ne suis pas sûr de la méthode, on va vérifier par un calcul explicite pour un ${\bf v}_i$ quelconque.\\
+On a, ${\bf x}^Te_1 = {\bf x}_ 1 \in \mathbb{R}$:
+$$
+\mathbb{E}[({\bf x}^Te_ 1)^2{\bf x}{\bf x}^T] = \mathbb{E}[x^2_1{\bf x}{\bf x}^T] = \mathbb{E}[x^2_1x_ix_j]_{ij}
+$$
+$$
+\mathbb{E}[x^2_1x_ix_j]_{ij} = \left\{ 
+\begin{array}{rcr}
+\mathbb{E}[x^4_1] = 3 & \mbox{si	} i = j = 1 \\
+\\
+\mathbb{E}[x^2_1x^2_i] = 1 & \mbox{si	} i = j \neq 1\\
+\\
+\mathbb{E}[x^2_1x_ix_j] = 0 & \mbox{si	} i \neq j
+\end{array}
+\right.
+$$
+En effet, $x\sim \mathcal{N}(0, \text{I}_d)$ donc $x^2 \sim \chi^2$ à 1 degré de liberté. Donc $\text{Var}(x^2_1) = \mathbb{E}[x^4_1] - (\mathbb{E}[x^2_1])^2 \Leftrightarrow \mathbb{E}[x^4_1] = 2 + 1 = 3$. Pour les deux autres moments, c'est simplement de la manipulation de vecteurs indépendants ou non.
+Donc:
+$$
+\mathbb{E}[({\bf x}^Te_ 1)^2{\bf x}{\bf x}^T] = 2e_1e^T_1 + \text{I}_d
+$$
+Puis, on va effectuer la même méthode pour ${\bf v}_i$ (donc un vecteur colonne de $Q$ quelconque) qu'on va noter ${\bf v}$ dans la suite pour alléger les notations (et donc $v_j$ désignera la $j$-ième composante de ${\bf v}_i$). En utilisant la formule du multinôme de Newton:
+$$
+({\bf x}^T{\bf v})^2 = (\sum_{j = 1}^d x_jv_ j)^2 = \sum_{0\leq i,j\leq d} v_iv_jx_ix_j
+$$
+Et note comme les $v_j$ sont des scalaires, par línéarité de l'espérance, on a:
+$$
+\mathbb{E}[({\bf x}^T{\bf v})^2{\bf x}{\bf x}^T] = \sum_{0\leq i,j\leq d} v_iv_j \mathbb{E}[x_ix_j{\bf x}{\bf x}^T]
+$$
+On sépare alors le cas $i=j$ et par la formule du multinôme, il suffira de prendre 2 fois la somme dans l'ordre strictement croissant des lignes par exemple. ($0\leq i < j \leq d$).\\
+Mais le cas $i=j$ donne directement $\sum_{i = 1}^dv^2_i \mathbb{E}[x^2_i{\bf x}{\bf x}^T] = \sum_{i = 1}^dv^2_i(2e_ie^T_i)+ \lVert {\bf v} \rVert^2 \text{I}_d$ (il suffit de prendre $1= i$ dans ce qu'on a fait plus haut.) Mais par le théorème spectral, car nous sommes dans des espaces euclidiens, on peut diagonaliser en base orthonormée, et quitte à en changer, on peut la prendre normée selon la norme issue du produit scalaire donc $\lVert {\bf v} \rVert^2 = 1$.\\
+Ensuite, par une disjonction de cas sur la parité des moments similaire à ce qu'on a fait plus haut:
+$$
+\mathbb{E}[({\bf x}^T{\bf v})^2{\bf x}{\bf x}^T] = \sum_{i = 1}^dv^2_i(2e_ie^T_i) + \text{I}_d + 2\sum_{0\leq i<j\leq d} v_iv_j e_ie^T_j
+$$ 
+$$
+\text{Or}, \quad \quad 2\sum_{0\leq i<j\leq d} v_iv_j e_ie^T_j = 2{\bf v}{\bf v}^T \quad \text{donc:}
+$$
+$$
+\mathbb{E}[({\bf x}^T{\bf v})^2{\bf x}{\bf x}^T] = 2{\bf v}{\bf v}^T + \text{I}_d 
+$$
+On trouve alors, en prenant la décomposition en vecteur propre ci-dessus dans l'autre sens (en effet, si $\sigma_i$ sont des valeurs propres et ${\bf v}_i$ les vecteurs propres associés, une décomposition de la matrice se note $\sum_{i=1}^{r} \sigma_i {\bf v}_i{\bf v}^T_i$) et en sommant:
+$$
+\mathbb{E}\left[\frac{1}{n} \sum_{i=1}^{n}y^2_i{\bf x}_i{\bf x}^T_i\right] = 2\overline{\Gamma} + \text{tr}{(\overline{\Gamma})}\text{I}_d + \text{I}_d = 2\overline{\Gamma} + (1 + \text{tr}{(\overline{\Gamma})})\text{I}_d
+$$
+Ce qui conclut la preuve du Lemme 2.
+
+\subsubsection{Le lemme 2 et passage à une représentation de B}
+Maintenant qu'on a trouvé une expression utilisable de l'espérance théorique, on va montrer comment il va permettre de retomber sur ${\bf B}$. En posant $\gamma = 1 + \text{Tr}(\overline{\Gamma}) = 1 + \text{Tr}(\overline{\Lambda})$ 
+$$
+\Omega = \mathbb{E}\left[\frac{1}{n} \sum_{i=1}^{n}y^2_i{\bf x}_i{\bf x}^T_i\right] = 2\overline{\Gamma} + (1+ \text{tr}{(\overline{\Gamma})})\text{I}_d = 2{\bf B}\overline{\Lambda}{\bf B}^T + \gamma \text{I}_d
+$$
+Mais $\overline{\Lambda}$ est trivialement une matrice symétrique définie positive donc elle est aussi diagonalisable, donc $\exists Q \in \mathbb{O}_d(\mathbb{R})$ tel que $\overline{\Lambda} = QD_{(\overline{\Lambda})}Q^T$ et comme vu plus haut, une matrice orthogonale et une matrice de passage dans une base orthogonale donc si $\Omega$ reste diagonal dans cette base alors la base à les mêmes propriétés :
+$$
+\Omega = {\bf B}QD_{(\overline{\Lambda})}{\bf B}^TQ^T + \gamma \text{I}_d = \tilde{{\bf B}}D_{\overline{\Lambda}}\tilde{{\bf B}}^T +  \gamma \text{I}_d
+$$
+Or, $\gamma\text{I}_d$ commute avec toutes les matrices et elle est symétrique définie positive (hypothèse 2) donc on peut appliquer le théorème de réduction simultané des endomorphisme symétrique.\\
+
+\noindent En particulier, comme $\gamma\text{I}_d$ est déjà diagonale, alors $\gamma$ est sa seule valeur propre et comme $2\overline{\Gamma}$ est déjà diagonalisée en base orthonormée, on sait que la base commune se trouve dans l'espace de $\tilde{{\bf B}}$, donc quitte à renommer ou normer les bases, on choisi $\tilde{{\bf B}}$ comme matrice de diagonalisation commune. \\
+Comme $\gamma > 0$, ça ne change pas l'ordre des valeurs propre de $\Omega$. Donc les $r$-premières valeurs propres de $\Omega$ sont $w_i = \sigma_i + \gamma$ et puis les $(d-r)$-autres sont exactements $\gamma$. \\
+Par conséquent, diagonaliser $\Omega$ nous donne bien des vecteurs propres associés à l'espace des vecteurs de ${\bf B}$.
+
+\subsubsection{De la représentation de B à l'algorithme 1}
+Maintenant qu'on a montré que $\Omega = \tilde{{\bf B}}\tilde{D_{\overline{\Lambda}}}\tilde{{\bf B}}$, il reste à montrer que $M = \hat{{\bf B}}D_ 1\hat{{\bf B}}^T$.\\
+Cela revient à montrer que la méthode des moments permet effectivement de trouver un bon estimateur de ${\bf B}$.
+Pour ce faire, le théorème 7 garanti que l'erreur entre $M$ et $\Omega = \mathbb{E}[\frac{1}{n} \sum_{i=1}^{n}y^2_i{\bf x}_i{\bf x}^T_i]$ est suffisament petite pour faire fonctionner le théorème 3 (qui dit que dans ces conditions, $\hat{{\bf B}}$ est bien un bon estimateur de ${\bf B}$.)
+
+\subsection{Éléments de preuve du théorème 3: une première borne sur $\hat{\bf B}$} 
+Évidement, selon les donnés et la manière de calculer les différentes matrices, il se peut qu'on trouve une matrice $\hat{{\bf B}}$ très différente de ${\bf B}$ mais ça n'a pas d'importance. Ce qui compte, c'est qu'elles représentent le même espace (ou en tout cas, on veut estimer la proximité entre les deux sous espaces décrits par les matrices, ie borner la différence entre les deux espaces), on cherche donc un moyen de comparer les espaces à partir d'une représentation par une matrice dans une certaine base.\\
+Pour expliquer la stratégie de preuve du théorème 3, on va déjà expliquer le théorème de Davis-Kahan qui va nous permettre de comparer les sous espaces comme expliqué plus haut. En ce basant sur \href{https://www.cs.columbia.edu/~djhsu/coms4772-f16/lectures/davis-kahan.pdf}{\color{Blue}ce cours} de Columbia University, on va relier les notations $\sin(\hat{{\bf B}}, {\bf B})$ et $\lVert \hat{{\bf B}}^T_{\perp} {\bf B} \rVert$.\\
+On note $M = \Omega + E$ avec $E$ bornée et on va les décomposer en somme d'actions sur des sous espaces orthogonaux:
+$$
+\Omega = {\bf B}D_{\Omega}{\bf B}^T + {\bf B}_1D_{\Omega_1}{\bf B}^T_1 \quad \text{et} \quad M = \hat{{\bf B}}D_{\Omega}\hat{{\bf B}}^T + \hat{{\bf B}}_1D_{\Omega_1}\hat{{\bf B}}^T_1
+$$
+Avec ${\bf B} \in S$ tel que $S$ est le sous espace des $r$-premières valeurs propres de $\Omega$ et ${\bf B}_1 \in S^{\perp}$ le complémentaire orthogonal (qui existe par le théorème spectral en dimension finie) ce qui nous permet d'avoir une décompositions selon les valeurs propres de $\Omega$ qui nous intérèsse.
+On peut alors montrer (cf. article en lien), que la proximités entre les sous espaces qui nous intérèsse revient à minimiser la norme $\lVert \hat{{\bf B}}^T_1{\bf B} \rVert$. Ce qui nous donne le théorème de Davis-Kahan:
+$$
+\lVert \hat{{\bf B}}^T_1{\bf B} \rVert = \lVert \hat{{\bf B}}^T_{\perp}{\bf B} \rVert \leq \frac{\lVert \hat{{\bf B}}^T_{\perp}E{\bf B} \rVert}{\delta}
+$$
+Avec un $\delta$ tel que les valeurs propres de $D_{\Omega}$ et $D_{\Omega_1}$ soient différentes. Il suffit alors de prendre $\delta$ tel que $\lVert E \rVert \leq \delta$ et comme $\hat{{\bf B}}^T_{\perp}$ et ${\bf B}$ sont des matrices orthogonales, on peut majorer l'inégalité par $\lVert E \rVert$ puis ensuite majorer l'erreur $E$, ce qui nous permet de conclure.
+
+
+
+\end{document}
