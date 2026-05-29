@@ -8,6 +8,8 @@
 \usepackage{hyperref}
 \usepackage{bm}
 \usepackage[french]{babel}
+\usepackage{cite}
+
 \geometry{hmargin=2.25cm,vmargin=2cm}
 \setcounter{secnumdepth}{4}
 \setcounter{tocdepth}{4}
@@ -20,12 +22,15 @@
 
 \DeclareMathOperator{\Ima}{Im}
 \DeclareMathOperator{\rank}{rg}
+\DeclareMathOperator{\trace}{tr}
 
 \begin{document}
 \maketitle
 
+\newpage
+
 \begin{abstract}
-Dans ce document, nous commençons par décrire et analyser des techniques d'apprentissage multi-tâche dans le cadre linéaire en se basant sur l'article \og Provable Meta-Learning of linear representation \fg{} et en explicitant certains théorèmes et certaines techniques qui permettent de récupérer efficacement les paramètres d'estimation de notre modèle. Dans une seconde partie, nous étudions la généralisation de ces techniques en classification par le biais d'une régression logistique. 
+Dans ce document, nous commençons par décrire et analyser des techniques d'apprentissage multi-tâche dans le cadre linéaire en se basant sur l'article \og Provable Meta-Learning of linear representation \fg{} \cite{MTLR_1} et en explicitant certains théorèmes et certaines techniques qui permettent de récupérer efficacement les paramètres d'estimation de notre modèle. Dans une seconde partie, nous étudions la généralisation de ces techniques en classification en étudiant la régression logistique et l'analyse discriminante linéaire.
 \end{abstract}
 
 \newpage
@@ -84,14 +89,16 @@ Tout l'enjeu de l'article et de montrer qu'il existe des méthodes simples, sous
 L'article se décompose donc en deux grandes parties: d'abord la phase de "Meta-Learning" où on va essayer de trouver $\hat {\bf B}$ avec suffisamment de précision et avec un algorithme simple et efficace, puis la phase de "Meta-Test" qui va permettre de montrer que le calcul de $\hat B$ va permettre de transférer une part de l'apprentissage à une nouvelle tâche $T+1$ en estimant ${\bm \alpha}_{T+1}$. 
 
 \subsection{Conventions}
-Par soucis de clarté, on va identifier $\mathbb{R}^n$ aux matrices lignes, donc les notations de l'article nous donnent~: ${\bf x}_i \in M_{d, 1}(\mathbb{R})$ et donc ${\bf x}^T_i \in M_{1, d}(\mathbb{R})$. On a donc, avec ces conventions, ${\bf B} \in M_{d, r}(\mathbb{R})$ et ${\bm \alpha}_{t(i)}\in M_{r, 1}(\mathbb{R})$ afin d'avoir $y_i \in \mathbb{R}$ et $\epsilon_i \in \mathbb{R}$. \\
+On s'efforcera, tout au long de ce rapport, à suivre les notations de l'article \cite{MTLR_1} dont on fait l'analyse et dont on détaille les preuves plus loin.\\
+
+\noindent Par soucis de clarté, on va identifier $\mathbb{R}^n$ aux matrices lignes, donc les notations de l'article nous donnent~: ${\bf x}_i \in M_{d, 1}(\mathbb{R})$ et donc ${\bf x}^T_i \in M_{1, d}(\mathbb{R})$. On a donc, avec ces conventions, ${\bf B} \in M_{d, r}(\mathbb{R})$ et ${\bm \alpha}_{t(i)}\in M_{r, 1}(\mathbb{R})$ afin d'avoir $y_i \in \mathbb{R}$ et $\epsilon_i \in \mathbb{R}$. \\
 
 \noindent On s'autorisera parfois à noter $t(i) = t$ qui restera implicitement une fonction de $i$ à valeur dans $I = \{1, \cdots, T\}$ afin d'alléger les notations.\\
 Les $({\bf x}_i)$ représentent des vecteurs observations. Quand ça sera nécessaire (pour choisir un représentant pour une espérance car ils suivent tous la même loi par exemple), on s'autorisera à noter ${\bf x}_1 = {\bf x}$ un vecteur quelconque de $({\bf x}_i)$ pour alléger encore une fois les notations.
 Il conviendra donc de distinguer $\textbf{x}_i$ (en gras) qui sera le i-ième vecteur d'observation et $x_i$ qui sera la i-ième composante d'un vecteur quelconque.\\
 Les lettres majuscules désignent toujours des matrices, quelles soient en gras ou non. Le gras permet soit de coller aux notations de l'article soit de distinguer les composantes des vecteurs avec les vecteurs en eux-mêmes.\\
 
-\noindent Ensuite, dans tout ce document, le symbole $\hat{ }$ (chapeau) au-dessus d'une lettre désignera un estimateur de l'objet considéré. (Des théorèmes comme la loi forte des grands nombres  nous assurent par exemple que la moyenne empirique est un estimateur convergent de l'espérance d'une variable aléatoire (convergence presque sûre) mais nous passerons sur le détail des convergences dans la suite de ce texte et on supposera que nous manipulerons uniquement des estimateurs convergents et on notera donc directement ces estimateurs avec un $\hat{ }$ sans plus de justifications sauf quand il y aura des ambiguïtés.) \textbf{Modifier cette phrase}\\
+\noindent Ensuite, dans tout ce document, le symbole $\hat{ }$ (chapeau) au-dessus d'une lettre désignera un estimateur de l'objet considéré. Nous passerons sur le détail des convergences dans la suite de ce texte et on supposera que nous manipulerons uniquement des estimateurs convergents et on notera donc directement ces estimateurs avec un $\hat{ }$ sans plus de justifications.\\
 De plus, quand on manipulera des espérances, on posera l'hypothèse d'ancillarité du design (les observations $\bf x_i$), c'est-à-dire que la loi des $\bf x_i$ ne dépend pas des paramètres $\bf B$ et $\bf \alpha$ que l'on va estimer. Ceci permettra de considérer des espérances selon la loi de $y$ sans que cela ne soit spécifié. 
 
 On pourra se permettre de parler de "matrices orthogonales" pour des matrices dont les colonnes forment une base orthogonale de l'espace considéré sans pour autant que cette matrice soit carré. 
@@ -102,16 +109,18 @@ Nous allons ici exposer les hypothèses faites sur le modèle et sur les entrée
 
 \subsection{La méthode des moments}\label{moments}
 Le but de la méthode des moments est d'estimer un paramètre $\lambda$ en remplaçant son moment théorique par un moment empirique. On a alors que le moment empirique de la variable aléatoire converge presque-sûrement vers l'espérance de la variable aléatoire par la loi forte des grands nombres.\\
-Par exemple~: Supposons que $X$ suit une loi exponentielle de paramètre $\lambda$, m = $\mathbb{E}[X]= \frac{1}{\lambda}$ alors on a pour n suffisament grand: 
+
+Soit $g$ une fonction mesurable et $m = \mathbb{E}[g(X)]$, et des variables aléatoires i.i.d. $X_1, \cdots, X_n$ dépendantes d'un paramètre $\lambda$. Supposons qu'il existe un $\mathcal{C}^1$-difféomorphisme sur un ouvert de $\mathbb{R}$ $\phi$, tel que $\phi(\lambda) = m$. On peut alors écrire $\lambda = \phi^{-1}(m)$. Par la loi forte des grands nombres, en posant $\hat{m_n} = \sum_{i=1}^{n} g(X_i)$, on a $\hat{m_n} \xrightarrow{p.s.} m$ et puis par le théorème de continuité, en considérant l'estimateur $\hat{\lambda} = \phi^{-1}(\hat{m_{n}})$ on a $\hat{\lambda} \xrightarrow{p.s.} \lambda$ et donc $\hat{\lambda}$ est un estimateur fortement consistant de $\lambda$. \\
+Par exemple~: Supposons que $X$ suit une loi exponentielle de paramètre $\lambda$, g est l'identité, m = $\mathbb{E}[X]= \frac{1}{\lambda}$ et on a $\phi(x) = \frac{1}{x}$ qui est bien un $\mathcal{C}^1$-difféomorphisme sur $\mathbb{R}^{+}$ donc on peut appliquer la méthode~: 
 $$
-\overline{X} = \frac{1}{n} \sum_{i=1}^{n} x_i \quad \text{et} \quad \overline{X} = \hat m
+\overline{X} = \frac{1}{n} \sum_{i=1}^{n} x_i \quad \text{et} \quad \overline{X} = \hat m_n
 $$
 D'où
 $$
 \frac{1}{\hat \lambda} = \overline{X} \Leftrightarrow \hat \lambda = \frac{1}{\overline{X}}
 $$
 
-Par conséquent, en disposant seulement des observations et en faisant l'hypothèse que les observations suivent une loi exponentielle, on peut estimer le paramètre de cette loi. 
+Par conséquent, en disposant seulement des observations et ayant une expression du moment théorique (c'est-à-dire en connaissance la fonction $\phi$), on peut estimer le paramètre que l'on cherche. 
 
 \subsection{Les hypothèses 1 et 2}\label{hypothèses}
 \paragraph*{Hypothèse 1~: Sous-exponentielle et réduction des ${\bf x}_i$}\label{hyp2} \textit{Les vecteurs ${\bf x}_i$ sont indépendants et identiquement distribués (iid), d'espérance nulle et de covariance $\mathbb{E}[{\bf x}{\bf x}^T] = {\bf I}_d$ avec $\mathbb{E}[e^{{\bf v}^T{\bf x}_i}] \leq e^{\frac{\lvert \lvert {\bf v}^2 \rvert \rvert}{2}}$. De plus, les variables aléatoire du bruit, $\epsilon_i$ sont iid, de variance égale à 1 et indépendants des ${\bf x}_i$} \\
@@ -123,6 +132,8 @@ L'hypothèse de sous-exponentielle permet d'appliquer des inégalités de concen
 
 \noindent L'hypothèse 2 permet de garantir que les tâches ne sont pas trop différentes et que donc il est possible de reconstruire la matrice $\bf B$ (qu'il y ait suffisamment d'information, ou de signal si on parle de reconstruction de phase, par rapport au bruit)\\
 
+\subsection{Méthode d'optimisation de bas rang}
+\textit{à remplir}
 
 \section{Détail algorithme 1: Calcul et borne d'un estimateur de B}
 On va donc décrire et expliciter ici certains points des preuves et de la méthode qui va nous permettre de calculer $\hat {\bf B}$.
@@ -247,7 +258,7 @@ Pour ce faire, le théorème 7 garanti que l'erreur entre $M$ et $\Omega = \math
 \subsection{Une première borne sur $\hat{\bf B}$} 
 \subsubsection{Éléments de preuve du théorème 3}\label{pv_th3}
 Évidement, selon les donnés et la manière de calculer les différentes matrices, il se peut qu'on trouve une matrice $\hat{{\bf B}}$ très différente de ${\bf B}$ mais ça n'a pas d'importance. Ce qui compte, c'est qu'elles représentent le même espace (ou en tout cas, on veut estimer la proximité entre les deux sous espaces décrits par les matrices, ie borner la différence entre les deux espaces), on cherche donc un moyen de comparer les espaces à partir d'une représentation par une matrice dans une certaine base.\\
-Pour expliquer la stratégie de preuve du théorème 3, on va déjà expliquer le théorème de Davis-Kahan qui va nous permettre de comparer les sous espaces comme expliqué plus haut. En se basant sur \href{https://www.cs.columbia.edu/~djhsu/coms4772-f16/lectures/davis-kahan.pdf}{\color{Blue}ce cours} de Columbia University, on va relier les notations $\sin(\hat{{\bf B}}, {\bf B})$ et $\lVert \hat{{\bf B}}^T_{\perp} {\bf B} \rVert$.\\
+Pour expliquer la stratégie de preuve du théorème 3, on va déjà expliquer le théorème de Davis-Kahan qui va nous permettre de comparer les sous espaces comme expliqué plus haut. En se basant sur un cours de Columbia University \cite{DAVIS-KHAN} par Daniel Hsu, on va relier les notations $\sin(\hat{{\bf B}}, {\bf B})$ et $\lVert \hat{{\bf B}}^T_{\perp} {\bf B} \rVert$.\\
 On note $M = \Omega + E$ avec $E$ bornée et on va les décomposer en somme d'actions sur des sous espaces orthogonaux~:
 $$
 \Omega = {\bf B}D_{\Omega}{\bf B}^T + {\bf B}_1D_{\Omega_1}{\bf B}^T_1 \quad \text{et} \quad M = \hat{{\bf B}}D_{\Omega}\hat{{\bf B}}^T + \hat{{\bf B}}_1D_{\Omega_1}\hat{{\bf B}}^T_1
@@ -262,7 +273,7 @@ Il suffit alors de prendre $\delta$ tel que $\lVert E \rVert \leq \delta$ et com
 
 \subsubsection{Un retour sur la notation sin(\textbf{B},$\hat{\textbf{B}}$)}
 Comme expliqué au paragraphe précédent, il nous faut définir une notion de distance entre des sous-espaces afin de s'avoir si nos matrices sont proches dans le sens où elles génèrent des sous-espaces proches. Si on a deux sous-espaces $\Pi$ et $\varXi$, caractérisé par des matrices respectives $E$ et $F$ qui sont formées de bases orthonormées de leur espace respectif. 
-En reprenant les notations de \href{https://www.stat.cmu.edu/~arinaldo/Teaching/36755/F17/Scribed_Lectures/F17_1023.pdf}{ce cours} : on peut écrire la décomposition en valeur singulière de $E^TF$ en notant $E^TF = UDV^T$ avec $U, V$ des matrices orthonormales dans le sens où elles sont formées de familles orthonormées et $D$ une matrice diagonale tel que $D = \begin{bmatrix}
+En reprenant les notations d'un cours de Carnegie-Mellon \cite{DAVIS_2} : on peut écrire la décomposition en valeur singulière de $E^TF$ en notant $E^TF = UDV^T$ avec $U, V$ des matrices orthonormales dans le sens où elles sont formées de familles orthonormées et $D$ une matrice diagonale tel que $D = \begin{bmatrix}
     \sigma_1 & \cdots & 0\\
     \vdots  & \ddots & \vdots\\
     0 & \cdots & \sigma_n
@@ -272,10 +283,11 @@ En reprenant les notations de \href{https://www.stat.cmu.edu/~arinaldo/Teaching/
     0 & \cdots & \theta_n
 \end{bmatrix}$. On a donc $\lvert \lvert E^TF \rvert \rvert = \lvert \lvert \cos(\Theta) \rvert \rvert$, car $U, V$ sont orthonormales. Et on a bien que $\cos(\Theta) = \cos(E, F)$. Cependant, $\forall i \in [|1, n|], \theta_i \in [0, \frac{\pi}{2}]$, donc si on range les $\theta_i$ dans l'ordre croissant, on a bien $\sin(\theta_1) \leq \lvert \lvert E^T_{\perp}F \rvert \rvert$ (la fonction $\sin(\cdot)$ renverse l'ordre sur $[0, \frac{\pi}{2}]$ mais reste positive). Or, l'article défini $\sin(E, F) = \sin(\theta_1)$. On appelle alors $\theta_1$ l'angle principal entre $\Pi$ et $\varXi$. Si $\sin(\theta_1)$ est petit, ça veut dire que le plus grand angle entre les deux espaces est proche de $\frac{\pi}{2}$ et donc que $\hat{\bf B}_{\perp}$ et $\bf{B}$ sont bien orthogonales et donc que $\hat{\bf B}$ et proche de $\bf B$.\\
 Il suffit maintenant de prendre la norme infinie et on obtient le résultat.\\
-Une autre preuve, plus calculatoire, est trouvable sur \href{https://yuxinchen2020.github.io/ele520_math_data/lectures/spectral_method.pdf}{ce cours} de Princeton.
+
+\noindent Une autre preuve, plus calculatoire, est trouvable dans un cours sur les méthodes spectrales en data science de Princeton \cite{DAVIS_PROOF}.
 
 \section{Apprentissage d'une nouvelle tâche: une estimation de $\hat{\bm{\alpha}}$}
-\subsection{Éléments de preuve du théorème 4}
+\subsection{Éléments de preuve du théorème 4}\label{th4}
 Le but de ce théorème est de montrer que l'algorithme 2 permet d'apprendre une nouvelle tâche (en calculant un $\bm{\alpha_{T + 1}}$) à partir d'une bonne estimation de $\hat B$ (une bonne estimation étant ici définie comme une estimation qui respecte le théorème 3, donc toute estimation faite à partir de l'algorithme 1 qui respecte nos hypothèses de départ.)\\
 On va utiliser un estimateur au sens des moindres carrés défini comme il suit:
 $$
@@ -300,7 +312,9 @@ Ensuite, il suffit de poser $\bm{y = X \hat{B} \alpha + \epsilon}$ et d'utiliser
 
 \section{Généralisation de ces méthodes à la classification}
 Dans cette partie, nous allons regarder les possibilités pour étendre le modèle multi-tâches, avec lequel on a travaillé dans les sections du dessus, à des cas non linéaire. En particulier, nous allons en premier lieu aborder le cas de la classification binaire avec une régression logistique.
-\subsection{Régression logistique cas uni-tâche à deux classes}
+\subsection{Approche par la régression logistique}
+Dans cette courte partie, nous allons rappeler la définition de la régression logistique puis définir une version multitâche en faisant une recherche bibliographique sur ce qui se fait dans la littérature. 
+\subsubsection{Régression logistique cas uni-tâche à deux classes}
 On va prendre $\Omega = \{0, 1\}$ et $Y_i\in \Omega$ une variable aléatoire. Si on considère les covariables ${\bf x}_i = ({x}_1, \cdots, {x}_n)^T$, telle que ces vecteurs correspondent aux réalisations successives (donc les observations) des variables aléatoires respectives. Comme dans l'introduction, on assimile les variables aléatoires à leur réalisation.\\ Si on note $\pi_i = \mathbb{P}(Y_i = 1 |{\bf x}_i)$, on fait l'hypothèse qu'il existe $\alpha \in M_n(\mathbb{R})$, alors $\ln(\frac{\pi}{1-\pi}) = {\bf x}_i^T\alpha$ et donc on peut exprimer la probabilité d'appartenance à la classe 1~: 
 $$\pi_i = \frac{1}{1+e^{-({\bf x}^T_i\alpha)}}$$
 Ce modèle est un cas particulier de modèle linéaire généralisé, où on reprend l'interprétation de la régression comme une espérance conditionnelle qu'on essaye d'estimer par une fonction linéaire composée à une 
@@ -316,45 +330,114 @@ $$
 \mathcal{L}\mathcal{L}(\alpha) = \sum_{i = 1}^{n} \log(\pi_i(\alpha)){Y_i} + \log(1-\pi_i(\alpha))(1-Y_i) 
 $$
 Et que l'on peut optimiser à l'aide de la méthode de Newton-Raphson. 
-\subsection{Approche naïve à la régression logistique multi-tâche binaire}
+\subsubsection{Approche naïve à la régression logistique multi-tâche binaire}
 On va essayer de poser bêtement un modèle qui combine notre modèle multi-tâche et celui vu ci-dessus, et on va essayer d'estimer ses paramètres à l'aide des méthodes développés plus haut. On peut donc poser, avec les conventions des sections précédentes et en les appliquer au modèle de régression logistique vu plus haut~:
 $$
 \pi_i = \frac{1}{1+ e^{-({\bf x}^T_i{\bf B}\alpha_{t(i)})}}
 $$
 La question qui se pose maintenant, c'est de savoir dans quelle mesure peut-on obtenir une bonne approximation de ${\bf B}$ et de $\alpha$ afin de pouvoir faire apprendre le modèle. 
 
-\subsection{Ce qui se fait dans la littérature sur la régression logistique multi-tâche}
-La plupart des articles que j'ai trouvés utilisent des modèles multi-classes en plus du multi-tâche ce qui complique les calcules et la recherche de méthode d'estimations des poids du modèle. C'est souvent des modèles à destination de la médecine pour faire de la prédiction du temps de survie de patient atteint de maladies graves comme le cancer. Le multi-tâche se fait d'ailleurs parfois sur les échelles de temps comme dans \href{https://arxiv.org/pdf/1801.05512}{cet article} ou la tâche va être de prédire la probabilité de décès dans un intervalle de temps donné. Cependant, cet article ne va pas nous être d'une grande aide, car la méthode utilisée pour l'apprentissage des poids utilise de l'apprentissage profond. 
+\subsubsection{Ce qui se fait dans la littérature sur la régression logistique multi-tâche}
+La plupart des articles que j'ai trouvés utilisent des modèles multi-classes en plus du multi-tâche ce qui complique les calcules et la recherche de méthode d'estimations des poids du modèle. C'est souvent des modèles à destination de la médecine pour faire de la prédiction du temps de survie de patient atteint de maladies graves comme le cancer. Le multi-tâche se fait d'ailleurs parfois sur les échelles de temps comme dans cet article pour la médecine \cite{MT-LR-1} ou la tâche va être de prédire la probabilité de décès dans un intervalle de temps donné. Cependant, cet article ne va pas nous être d'une grande aide, car la méthode utilisée pour l'apprentissage des poids utilise de l'apprentissage profond. 
 L'approche multi-tâche en termes de traitement sur des intervalles de temps semble être courante dans la bibliographie (j'ai même trouvé que ça), si bien que les modules R et Python des libraires scientifiques utilise cette implémentation dans ce qu'ils appellent une fonction MTLR (MultiTask Logistic Regression).
 
-Ces librairies font référence à \href{https://www.cs.cornell.edu/~cnyu/papers/nips11_survival.pdf}{cet article}~: (Yu et al. (2011)), qui propose une minimisation de la fonction coût entropie croisé binaire par la méthode de Newton. Rien ne semble apparaitre dans la littérature scientifique au sujet d'optimisation de ce genre de modèle par une descente de gradient.
+Ces librairies font référence à un article de prédiction de temps de survie der patients atteints de cancers (Yu et al. (2011)) \cite{Cancer-survival-rate} qui propose une minimisation de la fonction coût entropie croisé binaire par la méthode de Newton. Rien ne semble apparaitre dans la littérature scientifique au sujet d'optimisation de ce genre de modèle par une descente de gradient.
 
-\subsection{Approche par l'analyse discriminante linéaire}
-En se basant sur \href{https://www.researchgate.net/publication/340703142_Multi-Partitions_Subspace_Clustering}{cet article} de Vincent Vandewalle, et d'après "The elements of statistical learning" et "Introduction to statistical learning", on peut définir un modèle de classification de la manière suivante: Prenons un dataset ${({\bf x}_i, y_i)}$ avec ${\bf x}_i \in \mathbb{R}^d$ centrés, et $y_i \in \{1, \cdots, k\}$
+\subsection{Approche par l'analyse discriminante linéaire}\label{LDA_1}
+En se basant sur un de Vincent Vandewalle qui donne une défintiion de l'analyse discriminante linéaire \cite{VV_clustering}, et d'après "The elements of statistical learning" et "Introduction to statistical learning" \cite{elmstatlearn}, on peut définir un modèle de classification de la manière suivante: Prenons un dataset ${({\bf x}_i, y_i)}$ avec ${\bf x}_i \in \mathbb{R}^n$ centrés, et $y_i \in \{1, \cdots, k\}$
 $$
-{\bf x}_i | (z_i = k) \hookrightarrow \mathcal{N}_d(\mu_k, \Sigma_k)
+{\bf x}_i | (z_i = k) \hookrightarrow \mathcal{N}_n(\mu_k, \Sigma_k)
 $$
-Le but est d'avoir un classifieur linéaire donc on va chercher à exprimer une relation d'appartenance linéaire en ${\bf x}$ c'est à dire partitionner le dataset tel que ${\bf x}_i \in C_k$ avec $C_k$ l'ensemble des points de la classe $k$. \href{https://hastie.su.domains/ElemStatLearn/}{Une manière de faire} est de considérer que la covariance est commune. On a donc~: 
+Le but est d'avoir un classifieur linéaire donc on va chercher à exprimer une relation d'appartenance linéaire en ${\bf x}$ c'est à dire partitionner le dataset tel que ${\bf x}_i \in C_k$ avec $C_k$ l'ensemble des points de la classe $k$. Une manière de faire \cite{elmstatlearn} est de considérer que la covariance est commune. On a donc~: 
 $$
-{\bf x}_i | (z_i = k) \hookrightarrow \mathcal{N}_d(\mu_k, \Sigma)
+{\bf x}_i | (z_i = k) \hookrightarrow \mathcal{N}_n(\mu_k, \Sigma)
 $$
-Et on définit une matrice de covariance totale ${\bf T} = {\bf S}_b + {\bf S}_w$ comme étant la somme des matrices de covariance inter-classes et intra-classes qu'on définit comme~:
+Et on définit une matrice de covariance totale ${\bf S}_t = {\bf S}_b + {\bf S}_w$ comme étant la somme des matrices de covariance inter-classes et intra-classes qu'on définit comme~:
 $$
 {\bf S}_b = \frac{1}{n} \sum_{j=1}^{k}n_j\mu_j\mu^T_j \quad \quad \text{avec} \quad \quad n_j = \sum_{{\bf x}_i \in C_j} 1
 $$
 $$
 {\bf S}_t = \frac{1}{n} \sum_{i = 0}^{n} {\bf x}_i{\bf x}^T_i = n{\bf X}{\bf X}^T \quad \quad \text{avec} \quad \quad {\bf X} = (x_1, \cdots, x_n)
 $$
-\href{https://dl.acm.org/doi/10.1145/1273496.1273633}{On peut alors montrer} que pour trouver les solutions à ce problème (c'est à dire les $\mu_k$ de chaque classe), il suffit de faire une ACP sur la matrice ${\bf S}^{-1}_t{\bf S}_b$.
-\subsection{Analyse discriminante linéaire de fisher multitâche}
-Dans le cas de l'analyse discriminante de fisher, on a que deux classes ($k \in \{ i, 1\}$), ce qui simplifie beaucoup de choses. On va donc poser: 
+On peut alors montrer \cite{LDA-proof} que pour trouver les solutions à ce problème (c'est à dire les $\mu_k$ de chaque classe), il suffit de faire une ACP sur la matrice ${\bf S}^{-1}_t{\bf S}_b$.
+\subsubsection{Analyse discriminante linéaire multitâche multiclasse (MT-MLDA)}
+On va globalement reprendre les notations d'un article qui fut le premier à introduire l'analyse discriminante linéaire multitâche pour faire de la reconnaissance d'image \cite{MT-LDA}. Notons ici que la MLDA est utilisé dans la littérature scientifique pour faire de la classification sur des électroencéphalogrammes (EEG) \cite{EEG_LDA}.\\
+On considère des tâches $t \in \{1, \cdots, R\}$ et un dataset $D = \{\tau_{1}, \cdots, \tau_{R}\}$ centré, avec pour toute tâche $t$, $\tau_t = \{({\bf x}_{t, n}, l_{t, n})\}^{N_t}_{n = 1}$ avec $l_{t, n} \in \{1, \cdots, C\}$ est l'étiquette d'appartenance à une classe pour un ${\bf x}_{t, n} \in \mathbb{R}^d$ donné, c'est-à-dire au point $n$ pour la tâche $t$. On va alors considérer qu'il existe une matrice ${\bf B}$ commune à toutes les tâches et toutes les classes. On considère ensuite qu'il y a un $\mu$ par classe dans chaque tâche. Une tâche se comporte comme une autre classe, l'apprentissage de la LDA multiclasse revient simplement à exprimer les tâches comme une classe. On peut alors écrire la chose suivante:
 $$
-{\bf x}_{t(i)} | (z_{t(i)} = k) \hookrightarrow \mathcal{N}_d({\bf B}\mu_{t(i), k}, \Sigma)
+{\bf x}_{t, n} | (l_{t, n} = k) \hookrightarrow \mathcal{N}_d({\bf B}\mu_{t, k}, \Sigma)
 $$
-La matrice ${\bf S}_t$ ne va pas bouger, mais on va pouvoir réécrire différemment la matrice ${\bf S}_b$:
+On peut alors concaténer les ${\bf x}_{t, i}$ pour une tâche $t$ tel que $\tilde{\bf x}_t = [{\bf x}_{t, 1}, \cdots, {\bf x}_{t, N_t}]^T$ et considérer la matrice indicatrice suivante:\\
 $$
-{\bf S}_b = \frac{1}{n} \sum_{i = 0}^{2n}{\bf B}\mu_{T(i)}\mu^T_{T(i)}{\bf B}^T
+({\bf y}_t)_{ij} = \left\{ 
+\begin{array}{cc}
+\sqrt{\frac{N_t}{N_{t_j}}} - \sqrt{\frac{N_{t_j}}{N_t}} \quad \quad \text{si} \quad l_{t, i} = j\\
+\\
+-\sqrt{\frac{N_{t_j}}{N_t}} \quad \quad \text{sinon}
+\end{array}
+\right.
 $$
-Avec $T(i)$ indiçant la tâche et la classe.\\
-Et en reprenant les notations de \ref{lemme2}, on peut noter: ${\bf S}_t{\bf Y}^2 = M$ et ${\bf S}_b = 2\overline{\Gamma}$ avec ${\bf Y}^2 = (y^2_1, \cdots, y^2_n) \in \{-1, 1\}^n$
+Tel que $N_{t_j}$ est le nombre d'éléments de la classe $j$ dans la tâche $t$. Ensuite, $N_t = \sum_{i = 1}^{C} N_{t_i}$ est le nombre d'éléments dans la tâche $t$.\\
+Par concaténation, on obtient nos matrices et nos quantités finales: ${\bf X} = \{{\bf x}_1, \cdots, {\bf x}_R\} \in \mathbb{R}^{N \times d}$ et ${\bf Y} = \{ {\bf y}_1, \cdots, {\bf y}_R\} \in \mathbb{R}^{N \times CR}$ et enfin $N = \sum_{i = 1}^{R} N_i$.\\
+On va alors chercher à exprimer des matrices de covariance comme dans la section d'avant, la seule chose qui va changer sera le nombre de sommations~:\\
+La matrice ${\bf S}_t$ ne va pas bouger, on va avoir:
+$$
+{\bf S}_t = \frac{1}{N} \sum_{t = 1}^{R} \sum_{i = 1}^{N_t} {\bf x}_{t, i}{\bf x}^T_{t, i} = N{\bf X}{\bf X}^T 
+$$
+Pour la matrice ${\bf S}_b$, on va réarranger les termes:
+$$
+{\bf S}_b = \frac{1}{N} \sum_{t = 1}^{R}\sum_{i = 1}^{N_t}{\bf B}\mu_{t, i}\mu^T_{t, i}{\bf B}^T = \frac{1}{N} \sum_{i = 1}^{N} {\bf B}\mu_{T(i)}\mu^T_{T(i)}{\bf B}^T
+$$
+Avec $T(i)$ indiçant la tâche et la classe en parcourant le dataset $D$ dans l'ordre des tâches et des classes.\\
+Et en reprenant les notations de \ref{lemme2}, on peut noter~: ${\bf S}_b = \overline{\Gamma}$.\\
+L'idée pour relier l'article original (et donc \ref{lemme2}) à l'analyse discriminante linéaire va être d'essayer de trouver une bonne décomposition de ces matrices et montrer qu'elles décrivent le même espace. Ceci a des chances d'être possible car on va montrer à la section suivante que la MLDA est équivalence à la MLR sous des hypothèses très faibles, et on peut montrer \cite{LDA-to-LRR} l'équivalence avec l'approximation de bas rang (ce qui est la première approche de l'article original.)\\
+Le problème majeur est que maintenant, la sortie ${\bf y}_t$ n'est plus un réel, c'est une matrice. 
+\subsubsection{Lien entre l'analyse discriminante linéaire et la régression multilinéaire}
+Il se trouve que l'Analyse discriminante linéaire et la régression multilinéaire sont équivalentes, c'est à dire qu'il existe une certaine matrice indicatrice telle qu'appliquer une régression dessus nous donnes exactement les poids qui maximise la classification au sens de la LDA. On peut en retrouver une preuve dans la bibliographie \cite{LDA-proof}.\\
+
+La preuve se découpe en deux parties, d'abord, on va montrer que notre matrice ${\bf Y}$ est bien solution d'une régression puis que cette solution peut s'exprimer à l'aide des matrices ${\bf S}_t$ et ${\bf S}_b$. La deuxième partie consiste à montrer que cette solution se trouve dans le même espace que celui des solutions du modèle de LDA associé. 
+
+On peut esquisser une preuve de l'équivalence entre la LDA et la régression multilinéaire multivariée. Ceci nous donnera des outils pour la suite.
+Soit ${\bf X} \in \mathbb{R}^{n \times d}$ une matrice composée en colonne des vecteurs ${\bf x}_i$ qui appartiennent chacun à une classe $t(i)$ à valeur dans $\{1, \cdots, R\}$. On définit la matrice de dispersion totale $T = {\bf X}{\bf X}^T$ car les donnés sont centrés. On définit une matrice indicatrice ${\bf Y} \in \mathbb{R}^{n \times R}$ tel que  $({\bf Y})_{ij} = \left\{ 
+\begin{array}{cc}
+1 \quad \text{si} \quad t(i) = j\\
+\\
+0 \quad \text{sinon}
+\end{array}
+\right.$. De plus, on a $N_j$ points dans la classe $j$ tel que $n = \sum_{i= 1}^{R} N_i$.\\
+En reprenant les notations de \ref{LDA_1}, on a ${\bf S}_t = {\bf S}_b + {\bf S}_w$ et on peut écrire que la matrice qui contient les poids (les vecteurs $\mu_i$) qui maximisent l'écart entre les classes est ${\bf W}^{LDA} = \trace({\bf W}^T {\bf S}_b{\bf W}({\bf W}^T{\bf S}_t{\bf W})^{-1})$. Pour noter ça, il faut que la matrice ${\bf S}_t$ soit de rang maximale. Si ce n'est pas le cas, on peut prendre le pseudo inverse, en termes de valeur propre, ça revient exactement à prendre une décomposition en valeurs singulière de notre matrice et considérer seulement les valeurs propres non nulles.\\
+
+Ensuite, de manière assez surprenante, on peut exprimer ${\bf S}_b$ sous forme de produit de ${\bf Y}$ et ${\bf X}$. En effet, on peut remarquer que ${\bf Y}^T{\bf X}$ est la matrice formée de la somme des éléments de chaque classe. Pour obtenir la moyenne, il suffit de normée par une matrice diagonale qui contient exactement le nombre d'éléments par classe sur sa diagonale. Cette matrice est exactement ${\bf Y}^T{\bf Y}$. On peut alors noter:
+$$
+{\bf S}_b = {\bf X}^T{\bf Y} ({\bf Y}^T{\bf Y})^{-1}{\bf Y}^T{\bf X}
+$$
+Et si les classes sont réparties équitablement (même nombre d'éléments dans chaque classe), on a ${\bf S}_b = \frac{1}{n}{\bf X}^T{\bf Y}{\bf Y}^T{\bf X}$.\\
+Pour éviter ce problème, on pourrait normer ${\bf Y}$ pour la norme euclidienne et avoir $\tilde{\bf Y} = {\bf Y}({\bf Y}^T{\bf Y})^{\frac{-1}{2}}$ et obtenir ${\bf S}_b = {\bf X}^T\tilde{\bf Y}\tilde{\bf Y}^T{\bf X}$.\\
+
+Maintenant, reste à partir du modèle de régression multivarié sur notre matrie indicatrice. En gardant en tête la remarque faite au paragraphe ci-dessus, afin de simplifier les calculs, on peut considérer que les donnés sont réparties équitablement dans les classes. \\
+On considère le problème de minimisation suivant~: ${\bf W}^{MLR} = \arg \min_{\bf B} \lvert \lvert {\bf Y} -{\bf X}{\bf B} \rvert \rvert^2$. On décompose ${\bf Y}$ en un produit de deux matrices dont on fixe le rang max de la première à celui de ${\bf Y}$~: ${\bf Y} = {\bf D}{\bf F}^T$ avec $\rank({\bf Y}) = p$. Or, comme vu à la section \ref{th4}, si on dispose de ${\bf D}$, alors on peut trouver le ${\bf F}^T$ optimal par une régression tel que ${\bf F}^T = (({\bf XD})^T {\bf XD})^{-1}({\bf XD})^T{\bf Y}$. On peut alors remplacer ${\bf F}^T$ par son expression dans le problème de minimisation: $\lvert \lvert {\bf Y} -{\bf X}{\bf D}(({\bf XD})^T {\bf XD})^{-1}({\bf XD})^T{\bf Y} \rvert \rvert^2$, or, pour une matrice, on a $\lvert \lvert A \rvert \rvert^2 = \trace(AA^T)$, d'où~:
+$$
+{\bf W}^{MLR} = \arg \min_{\bf D} \lvert \lvert {\bf Y} -{\bf X}{\bf D}(({\bf XD})^T {\bf XD})^{-1}({\bf XD})^T{\bf Y} \rvert \rvert^2 = \arg \min_{\bf D} \lvert \lvert {\bf Y} -{\bf P}{\bf Y} \rvert \rvert^2
+$$
+$$
+\Leftrightarrow \arg \min_{\bf D} \trace(({\bf Y} - {\bf PY})^T({\bf Y} - {\bf PY}))
+$$
+$$
+\Leftrightarrow \arg \min_{\bf D} \trace({\bf YY}^T - {\bf Y}^T{\bf PY} - {\bf Y}^T{\bf P}^T{\bf Y} + {\bf Y}^T{\bf P}^T {\bf PY}) = \arg \min_{\bf D} \left[\trace({\bf YY}^T) - \trace({\bf Y}^T{\bf P}^T{\bf Y}) \right]
+$$
+En effet, ${\bf P}$ est une matrice de projection orthogonale, elle est symétrique et idempotente (la vérification est facile, mais fastidieuse.) On peut alors faire la transformation finale de notre problème~:
+$$
+{\bf W}^{MLR} = \arg \max_{\bf D} \trace({\bf Y}^T{\bf P}^T{\bf Y}) = \arg \max_{\bf D} \trace({\bf Y}^T{\bf X}{\bf D}(({\bf XD})^T {\bf XD})^{-1}{\bf XD}{\bf Y})
+$$
+$$
+\arg \max_{\bf D} \trace(({\bf D}^T {\bf X}^T{\bf XD})^{-1}{\bf D}^T{\bf X}^T{\bf Y}{\bf Y}^T{\bf X}{\bf D}) = \arg \max_{\bf D} \trace(({\bf D}^T{\bf S}_t{\bf D})^{-1}{\bf D}^T{\bf S}_b{\bf D}) = {\bf W}^{LDA}
+$$
+La première ligne est possible car ${\bf YY}^T$ ne dépend pas de D et que passer d'une minimisation à une maximisation revient à changer le signe.\\
+Ceci conclut la preuve pour le cas où les classes contiennent le même nombre d'éléments. Dans le cas contraire, il suffit de remplacer ${\bf Y}$ par $\tilde{\bf Y}$.\\
+
+Il est intéressant de noter que sous nos hypothèses, et en considérant que l'on dispose d'une bonne matrice ${\bf B}$ (qui ici serait plus ou moins équivalent au $\beta_{t(i)}$ du début de ce document), les résultats du théorème 4 (\ref{th4}) fonctionnent immédiatement et donc il est possible d'apprendre une nouvelle tâche à notre modèle de MLDA de la même manière qu'on le ferait dans l'article original. 
+
+\section{Conclusion}
+
+\bibliography{mybib}{}
+\bibliographystyle{plain}
 \end{document}
