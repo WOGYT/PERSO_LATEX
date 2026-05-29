@@ -9,6 +9,7 @@
 \usepackage{bm}
 \usepackage[french]{babel}
 \usepackage{cite}
+\usepackage{ragged2e}
 
 \geometry{hmargin=2.25cm,vmargin=2cm}
 \setcounter{secnumdepth}{4}
@@ -25,26 +26,66 @@
 \DeclareMathOperator{\trace}{tr}
 
 \begin{document}
-\maketitle
+\begin{center}
+\thispagestyle{empty}
+
+\textsc{\LARGE Université Côte d'Azur}\\[2cm]
+
+\textsc{\Large UE Initiation à la recherche en mathématiques}\\[1.5cm]
+
+\vfill
+\par\noindent\rule[20pt]{\textwidth}{1pt}
+{ \huge \bfseries Apprentissage Multitâche }\\[18pt]
+
+\par\noindent\rule[20pt]{\textwidth}{1pt}
+\vfill
+% Author and supervisor
+\begin{minipage}{0.4\textwidth}
+    \begin{flushleft} \large
+    \textsc{Gabriel Legout}\\
+    L3 Mathématiques\\
+    \end{flushleft}
+\end{minipage}
+\begin{minipage}{0.4\textwidth}
+    \begin{flushright} \large
+    \emph{Tuteur :} M. \textsc{Vandewalle}\\
+    \end{flushright}
+\end{minipage}\\[20pt]
+
+
+% Bottom of the page
+{\large Novembre 2025 — Juin 2026}
+
+\end{center}
 
 \newpage
-
+\thispagestyle{empty}
+\null\vfill
 \begin{abstract}
+Ce document contient mon travail effectué au sein de l'UE "Initiation à la recherche en mathématiques" proposé en L3 Mathématiques à l'Université Côte d'Azur (UniCA) sur le sujet de l'Apprentissage multitâche. Ce stage s'est effectué sous la supervision de M. Vincent Vandewalle, Professeur en mathématiques appliquées à UniCA. Je tiens à la remercier chaleureusement pour son encadrement.
+
 Dans ce document, nous commençons par décrire et analyser des techniques d'apprentissage multi-tâche dans le cadre linéaire en se basant sur l'article \og Provable Meta-Learning of linear representation \fg{} \cite{MTLR_1} et en explicitant certains théorèmes et certaines techniques qui permettent de récupérer efficacement les paramètres d'estimation de notre modèle. Dans une seconde partie, nous étudions la généralisation de ces techniques en classification en étudiant la régression logistique et l'analyse discriminante linéaire.
 \end{abstract}
+\vfill
 
 \newpage
+\thispagestyle{empty}
 \tableofcontents
 \newpage
 
 \section{Introduction}
-Commençons d'abord par réintroduire les méthodes de regression linéaire et multi-linéaire ainsi que les différents enjeux associés dans les méthodes d'apprentissages.\\
+\subsection{Introduction à l'apprentissage multitâche}
 
-\noindent D'abord, de manière classique, on peut noter un modèle de regression linéaire unidimensionel de la manière suivant:
+%fin du paragraphe, lien avec celui d'après.
+\noindent Commençons par introduire les méthodes de régression linéaire et multi-linéaire ainsi que les différents enjeux associés en terme d'apprentissages.
+
+\subsection{Rappel sur les régressions}
+
+\noindent D'abord, de manière classique, on peut noter un modèle de régression linéaire unidimensionnel de la manière suivant~:
 $$
 y_i = x_i\alpha + \epsilon_i
 $$
-Avec, $y_i \in \mathbb{R}, x_i \in \mathbb{R}, \epsilon_i \in \mathbb{R}$. On a donc une liste de points $(x_i)_{i \in \left[|0, n| \right]}, n \in \mathbb{N}$ auquel on associe un unique $\alpha$ qui va être calculer selon une méthode quelconque (on peut chercher $\alpha$ tel qu'il minimise la somme résiduelle des carrés, auquel cas on aura $y_i$ qui sera une prédiction au sens des moindres carrés) et va nous permettre de prédire un $y_i$ qui n'est pas dans le domaine de points initial mais qui répond aux mêmes contraintes sur la tâche considérée.\\
+Avec, $y_i \in \mathbb{R}, x_i \in \mathbb{R}, \epsilon_i \in \mathbb{R}$. On a donc une liste de points $(x_i)_{i \in \left[|0, n| \right]}, n \in \mathbb{N}$ auquel on associe un unique $\alpha$ qui va être calculé selon une méthode quelconque (on peut chercher $\alpha$ tel qu'il minimise la somme résiduelle des carrés, auquel cas on aura $y_i$ qui sera une prédiction au sens des moindres carrés) et va nous permettre de prédire un $y_i$ qui n'est pas dans le domaine de points initial, mais qui répond aux mêmes contraintes sur la tâche considérée.\\
 Comme tous les modèles de régression, il faut connaître la fonction suivie par les donnés afin de pouvoir les modéliser, et en particulier, il faut que les donnés suivent une même "fonction" qui est exprimable dans le modèle.\\
 
 \noindent De manière générale, on peut effectuer la généralisation suivante. On considère l'expérience statistique engendrée par l'observation~:
@@ -57,49 +98,52 @@ y_i = r(\vartheta, \textbf{X}_i) + \epsilon_i
 $$
 Avec $i \in [|1, n|]$, les variables aléatoires $(\textbf{X}_i, y_i)$ sont indépendantes et de même loi à valeur dans $\mathbb{R}^k \times \mathbb{R}$ et $\vartheta \in \Theta \subset \mathbb{R}^d$ le paramètre inconnu.\\
 On va ensuite se passer dans le cas d'un design déterministe en posant l'hypothèse que la loi des covariables $\textbf{X}_i$ ne dépend pas de $\vartheta$. Ceci revient alors à remplacer $(\textbf{X}_i, y_i)$ par $(\textbf{x}_i, y_i)$. 
-On peut le voir si la loi des $y_i$ admet un moment d'ordre 1, on définit la fonction de régression $r(\vartheta, \cdot): \mathbb{R}^k \rightarrow \mathbb{R}$ en posant~:
+Si la loi des $y_i$ admet un moment d'ordre 1, on définit la fonction de régression $r(\vartheta, \cdot): \mathbb{R}^k \rightarrow \mathbb{R}$ en posant~:
 $$
 r(\vartheta, \textbf{x}) = \mathbb{E}_{\vartheta}[y_i \mid \textbf{X}_i = \textbf{x}], \quad \textbf{x} \in \mathbb{R}
 $$
-On peut alors écrire: $y_i = \mathbb{E}_{\vartheta}[y_i \mid \textbf{X}_i = \textbf{x}] + y_i - \mathbb{E}_{\vartheta}[Y_i \mid \textbf{X}_i = \textbf{x}]$, avec $\epsilon = y_i - \mathbb{E}_{\vartheta}[y_i \mid \textbf{X}_i =\textbf{x}]$, on peut alors vérifier qu'on a bien $\mathbb{E}_{\vartheta}[\epsilon \mid \textbf{X}_i =\textbf{x}] = 0$.\\
+On peut alors écrire: $y_i = \mathbb{E}_{\vartheta}[y_i \mid \textbf{X}_i = \textbf{x}_i] + y_i - \mathbb{E}_{\vartheta}[Y_i \mid \textbf{X}_i = \textbf{x}_i]$, avec $\epsilon = y_i - \mathbb{E}_{\vartheta}[y_i \mid \textbf{X}_i =\textbf{x}_i]$, on peut alors vérifier qu'on a bien $\mathbb{E}_{\vartheta}[\epsilon \mid \textbf{X}_i =\textbf{x}_i] = 0$.\\
 Dans la suite, on pourra omettre le $_{\vartheta}$ de $\mathbb{E}_{\vartheta}$ car il n'y a pas d'ambiguïté.  \\
 
 On voit alors que pour obtenir le premier modèle de régression linéaire (à une dimension), il suffit de poser $r = \vartheta = \alpha$. On peut maintenant généraliser en considérant que nos $\textbf{x}_i$ sont des vecteurs. On va donc avoir~:
 $$
 y_i = x_{i, 1}\alpha_1 + \ldots + x_{i, k}\alpha_k + \epsilon_i
 $$
-D'où en posant~: $\vartheta = (\alpha_1, \ldots, \alpha_k)$ et $r(\vartheta, \textbf{x}_i = (x_{i, 1}, \ldots, x_{i, k})) = x_{i, 1}\alpha_1 + \ldots + x_{i, k}\alpha_k$
+D'où en posant~: $\vartheta = (\alpha_1, \ldots, \alpha_k)^T$ et $r(\vartheta, \textbf{x}_i = (x_{i, 1}, \ldots, x_{i, k})^T) = x_{i, 1}\alpha_1 + \ldots + x_{i, k}\alpha_k$
 $$
-y_i  = \textbf{x}_i\vartheta^T + \epsilon_i
+y_i  = \textbf{x}^T_i\vartheta + \epsilon_i
 $$
 Qu'on peut réécrire~:
 $$
-y_i = \vartheta {\bf x}^T_i + \epsilon_i \text{(À voir ce qu'on décide de choisir comme dimensionement)}
+y_i = \vartheta^T {\bf x}_i + \epsilon_i
 $$
-Cependant, on voit que ce modèle aboutit à un nombre considérable de paramètres ce qui peut entrainer au coût de calcul énorme. De plus, avec l'hypothèse selon laquelle les entrées contiennent suffisamment d'information pour faire de la prédiction sur plusieurs tâches, il parait raisonnable de considérer que certaines de ces tâches contiennent des caractéristiques communes parmi les entrées. Ce qu'on peut faire c'est imaginer avoir des paramètres communs à toutes les tâches et avoir des coefficients d'ajustement, par tâches, pour permettre une meilleure estimation. On va donc utiliser le modèle suivant~:
+Cependant, on voit que ce modèle aboutit à un nombre considérable de paramètres ce qui peut entrainer au coût de calcul énorme. 
+
+\subsection{Présentation d'un premier modèle multitâche}
+Afin de résoudre le problème de coût de calcul présenter à la section précédente, sous l'hypothèse selon laquelle les entrées contiennent suffisamment d'information pour faire de la prédiction sur plusieurs tâches, il parait raisonnable de considérer que certaines de ces tâches contiennent des caractéristiques communes parmi les entrées. Ce qu'on peut faire c'est imaginer avoir des paramètres communs à toutes les tâches et avoir des coefficients d'ajustement, par tâches, pour permettre une meilleure estimation. On va donc utiliser le modèle suivant~:
 \\
 $$
 y_i  = {\bf x}^T_i{\bf B}{\bm \alpha}_{t(i)} + \epsilon_i
 $$
 
-\noindent Dans ce modèle, on dispose d'un vecteur d'entrée comprenant $d$ variables et de vecteurs de paramètres ${\bm \alpha}_{t(i)}$ spécifiques à une tâche $t(i)$ permettant de prévoir la sortie $y_i$. On va donc numeroté les tâches dans $I = \{1, \cdots, T\}$ et donc $t(i) \in I$\\
+\noindent Dans ce modèle, on dispose d'un vecteur d'entrée comprenant $d$ variables et de vecteurs de paramètres ${\bm \alpha}_{t(i)} \in M_{r, 1}(\mathbb{R}), r \leq d$ spécifiques à une tâche $t(i)$ permettant de prévoir la sortie $y_i$. On va donc numeroter les tâches dans $I = \{1, \cdots, T\}$ et donc $t(i) \in I$\\
 De plus, contrairement à un modèle linéaire classique, on dispose d'une matrice ${\bf B}$, \textbf{commune} à toutes les tâches qui comprend des caractéristiques communes à plusieurs tâches permettant de mutualiser l'apprentissage et la prédiction $y_i$. Les indices $t(i)$, permettent simplement d'indicer les tâches. \\
 
-Tout l'enjeu de l'article et de montrer qu'il existe des méthodes simples, sous certaines bonnes hypothèses, pour récupérer un estimateur $\hat {\bf B}$ de la matrice ${\bf B}$ efficacement et puis de montrer qu'on a des meilleures estimations avec un coût plus faible qu'en cherchant uniquement des ${\bm \alpha}_{t}$.\\
+Tout l'enjeu de l'article \cite{MTLR_1} et de montrer qu'il existe des méthodes simples, sous certaines bonnes hypothèses, pour récupérer un estimateur $\hat {\bf B}$ de la matrice ${\bf B}$ efficacement et puis de montrer qu'on a des meilleures estimations avec un coût plus faible qu'en cherchant uniquement des ${\bm \alpha}_{t}$.\\
 L'article se décompose donc en deux grandes parties: d'abord la phase de "Meta-Learning" où on va essayer de trouver $\hat {\bf B}$ avec suffisamment de précision et avec un algorithme simple et efficace, puis la phase de "Meta-Test" qui va permettre de montrer que le calcul de $\hat B$ va permettre de transférer une part de l'apprentissage à une nouvelle tâche $T+1$ en estimant ${\bm \alpha}_{T+1}$. 
 
 \subsection{Conventions}
 On s'efforcera, tout au long de ce rapport, à suivre les notations de l'article \cite{MTLR_1} dont on fait l'analyse et dont on détaille les preuves plus loin.\\
 
-\noindent Par soucis de clarté, on va identifier $\mathbb{R}^n$ aux matrices lignes, donc les notations de l'article nous donnent~: ${\bf x}_i \in M_{d, 1}(\mathbb{R})$ et donc ${\bf x}^T_i \in M_{1, d}(\mathbb{R})$. On a donc, avec ces conventions, ${\bf B} \in M_{d, r}(\mathbb{R})$ et ${\bm \alpha}_{t(i)}\in M_{r, 1}(\mathbb{R})$ afin d'avoir $y_i \in \mathbb{R}$ et $\epsilon_i \in \mathbb{R}$. \\
+\noindent Par soucis de clarté, on va identifier $\mathbb{R}^n$ aux matrices lignes, donc les notations de l'article nous donnent~: ${\bf x}_i \in M_{d, 1}(\mathbb{R})$ et donc ${\bf x}^T_i \in M_{1, d}(\mathbb{R})$. On a donc, avec ces conventions, ${\bf B} \in M_{d, r}(\mathbb{R})$ et ${\bm \alpha}_{t(i)}\in M_{r, 1}(\mathbb{R}), r \leq d$ afin d'avoir $y_i \in \mathbb{R}$ et $\epsilon_i \in \mathbb{R}$. \\
 
 \noindent On s'autorisera parfois à noter $t(i) = t$ qui restera implicitement une fonction de $i$ à valeur dans $I = \{1, \cdots, T\}$ afin d'alléger les notations.\\
-Les $({\bf x}_i)$ représentent des vecteurs observations. Quand ça sera nécessaire (pour choisir un représentant pour une espérance car ils suivent tous la même loi par exemple), on s'autorisera à noter ${\bf x}_1 = {\bf x}$ un vecteur quelconque de $({\bf x}_i)$ pour alléger encore une fois les notations.
+Les $({\bf x}_i)$ représentent des vecteurs observations. Quand cela sera nécessaire (pour choisir un représentant pour une espérance car ils suivent tous la même loi par exemple), on s'autorisera à noter ${\bf x}_1 = {\bf x}$ un vecteur quelconque de $({\bf x}_i)$ pour alléger encore une fois les notations.
 Il conviendra donc de distinguer $\textbf{x}_i$ (en gras) qui sera le i-ième vecteur d'observation et $x_i$ qui sera la i-ième composante d'un vecteur quelconque.\\
 Les lettres majuscules désignent toujours des matrices, quelles soient en gras ou non. Le gras permet soit de coller aux notations de l'article soit de distinguer les composantes des vecteurs avec les vecteurs en eux-mêmes.\\
 
 \noindent Ensuite, dans tout ce document, le symbole $\hat{ }$ (chapeau) au-dessus d'une lettre désignera un estimateur de l'objet considéré. Nous passerons sur le détail des convergences dans la suite de ce texte et on supposera que nous manipulerons uniquement des estimateurs convergents et on notera donc directement ces estimateurs avec un $\hat{ }$ sans plus de justifications.\\
-De plus, quand on manipulera des espérances, on posera l'hypothèse d'ancillarité du design (les observations $\bf x_i$), c'est-à-dire que la loi des $\bf x_i$ ne dépend pas des paramètres $\bf B$ et $\bf \alpha$ que l'on va estimer. Ceci permettra de considérer des espérances selon la loi de $y$ sans que cela ne soit spécifié. 
+De plus, quand on manipulera des espérances, on posera l'hypothèse d'ancillarité du design (les observations $\bf x_i$), c'est-à-dire que la loi des $\bf x_i$ ne dépend pas des paramètres $\bf B$ et $\bm{\alpha}$ que l'on va estimer. Ceci permettra de considérer des espérances selon la loi de $y$ sans que cela ne soit spécifié. 
 
 On pourra se permettre de parler de "matrices orthogonales" pour des matrices dont les colonnes forment une base orthogonale de l'espace considéré sans pour autant que cette matrice soit carré. 
 
@@ -108,12 +152,12 @@ On pourra se permettre de parler de "matrices orthogonales" pour des matrices do
 Nous allons ici exposer les hypothèses faites sur le modèle et sur les entrées ainsi que des méthodes générales qui vont être utilisées pour montrer les résultats important tout au long de l'article.
 
 \subsection{La méthode des moments}\label{moments}
-Le but de la méthode des moments est d'estimer un paramètre $\lambda$ en remplaçant son moment théorique par un moment empirique. On a alors que le moment empirique de la variable aléatoire converge presque-sûrement vers l'espérance de la variable aléatoire par la loi forte des grands nombres.\\
+Le but de la méthode des moments est d'estimer un paramètre $\lambda$ en remplaçant son moment théorique par un moment empirique (sous certaines conditions d'existence explicitées juste après). On a alors que le moment empirique de la variable aléatoire converge presque-sûrement vers l'espérance de la variable aléatoire par la loi forte des grands nombres.\\
 
-Soit $g$ une fonction mesurable et $m = \mathbb{E}[g(X)]$, et des variables aléatoires i.i.d. $X_1, \cdots, X_n$ dépendantes d'un paramètre $\lambda$. Supposons qu'il existe un $\mathcal{C}^1$-difféomorphisme sur un ouvert de $\mathbb{R}$ $\phi$, tel que $\phi(\lambda) = m$. On peut alors écrire $\lambda = \phi^{-1}(m)$. Par la loi forte des grands nombres, en posant $\hat{m_n} = \sum_{i=1}^{n} g(X_i)$, on a $\hat{m_n} \xrightarrow{p.s.} m$ et puis par le théorème de continuité, en considérant l'estimateur $\hat{\lambda} = \phi^{-1}(\hat{m_{n}})$ on a $\hat{\lambda} \xrightarrow{p.s.} \lambda$ et donc $\hat{\lambda}$ est un estimateur fortement consistant de $\lambda$. \\
+Soit $g$ une fonction mesurable et $m = \mathbb{E}[g(X)] < + \infty$, et des variables aléatoires i.i.d. $X_1, \cdots, X_n$ de même loi que $X$, dépendantes d'un paramètre $\lambda$. Supposons qu'il existe un $\mathcal{C}^1$-difféomorphisme sur un ouvert de $\mathbb{R}$ $\phi$, tel que $\phi(\lambda) = m$. On peut alors écrire $\lambda = \phi^{-1}(m)$. Par la loi forte des grands nombres, en posant $\hat{m_n} = \sum_{i=1}^{n} g(X_i)$, on a $\hat{m_n} \xrightarrow{p.s.} m$ et puis par le théorème de continuité, en considérant l'estimateur $\hat{\lambda} = \phi^{-1}(\hat{m_{n}})$ on a $\hat{\lambda} \xrightarrow{p.s.} \lambda$ et donc $\hat{\lambda}$ est un estimateur fortement consistant de $\lambda$. \\
 Par exemple~: Supposons que $X$ suit une loi exponentielle de paramètre $\lambda$, g est l'identité, m = $\mathbb{E}[X]= \frac{1}{\lambda}$ et on a $\phi(x) = \frac{1}{x}$ qui est bien un $\mathcal{C}^1$-difféomorphisme sur $\mathbb{R}^{+}$ donc on peut appliquer la méthode~: 
 $$
-\overline{X} = \frac{1}{n} \sum_{i=1}^{n} x_i \quad \text{et} \quad \overline{X} = \hat m_n
+\overline{X} = \frac{1}{n} \sum_{i=1}^{n} X_i \quad \text{et} \quad \overline{X} = \hat m_n
 $$
 D'où
 $$
@@ -128,9 +172,9 @@ Par conséquent, en disposant seulement des observations et ayant une expression
 \noindent L'hypothèse d'avoir les ${\bf x}_i$ centrés réduits est nécessaire à presque toutes les preuves pour simplifier les moments théoriques d'ordre 1 ou simplifier par l'identité les produits ${\bf x}{\bf x}^T$ dans des espérances. De plus, on considère qu'ils sont indépendants et identiquement distribués (iid). On rajoute parfois en plus l'hypothèse que les ${\bf x}_i$ suivent une loi normale centrée réduite.\\
 L'hypothèse de sous-exponentielle permet d'appliquer des inégalités de concentration.\\
 
-\paragraph*{Hypothèse 2~: Normalisation des tâches}\label{hyp1} \textit{Soit $t(i) \in I$, on suppose que $\lvert \lvert \alpha_{t(i)} \rvert \rvert \leq \varTheta(1)$}. De plus, les r-premières valeurs propres de $\frac{A^TA}{t(i)}$ sont non nulles.\\
+\paragraph*{Hypothèse 2~: Normalisation des tâches}\label{hyp1} \textit{Soit $t(i) \in \{1, \cdots T\}$, on suppose que $\lvert \lvert \alpha_{t(i)} \rvert \rvert = \varTheta(1)$}. De plus, les r-premières valeurs propres de $\frac{A^TA}{T}$ sont non nulles avec $A^TA = \sum^T_{j = 1}\bm{\alpha}_{t(j)}\bm{\alpha}^T_{t(j)}$.\\
 
-\noindent L'hypothèse 2 permet de garantir que les tâches ne sont pas trop différentes et que donc il est possible de reconstruire la matrice $\bf B$ (qu'il y ait suffisamment d'information, ou de signal si on parle de reconstruction de phase, par rapport au bruit)\\
+\noindent L'hypothèse 2 permet de garantir que les tâches ne sont pas trop différentes et que donc il est possible de reconstruire la matrice $\bf B$ (qu'il y ait suffisamment d'information, ou de signal si on parle de reconstruction de phase, par rapport au bruit.)\\
 
 \subsection{Méthode d'optimisation de bas rang}
 \textit{à remplir}
@@ -183,7 +227,7 @@ Maintenant, une matrice orthogonale est une matrice de changement de base orthog
 $$
 \mathbb{E}[{\bf x}^T\overline{\Lambda}{\bf x}{\bf x}{\bf x}^T] = \mathbb{E}[{\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r)Q^T{\bf x}{\bf x}{\bf x}^T]
 $$
-Mais, il faut garder à l'esprit que ${\bf x}^T\overline{\Lambda}{\bf x}^T \in \mathbb{R}$ et donc que ${\bf x}^TQ \in \mathbb{R}^d$. Par conséquent, on peut écrire ${\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r)Q^T{\bf x} = {\bf x}^TQ({\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r))^T$ et si on note $Q = ({\bf v}_1, ..., {\bf v}_ r)$, on a ${\bf x}^TQ = ({\bf x}^T{\bf v}_1, ..., {\bf x}^T {\bf v}_r)$ et donc ${\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r) = (\sigma_1 {\bf x}^T{\bf v}_ 1, ..., \sigma_r {\bf x}^T {\bf v}_ r)$. \\
+Mais, il faut garder à l'esprit que ${\bf x}^T\overline{\Lambda}{\bf x} \in \mathbb{R}$ et donc que ${\bf x}^TQ \in \mathbb{R}^d$. Par conséquent, on peut écrire ${\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r)Q^T{\bf x} = {\bf x}^TQ({\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r))^T$ et si on note $Q = ({\bf v}_1, ..., {\bf v}_ r)$, on a ${\bf x}^TQ = ({\bf x}^T{\bf v}_1, ..., {\bf x}^T {\bf v}_r)$ et donc ${\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r) = (\sigma_1 {\bf x}^T{\bf v}_ 1, ..., \sigma_r {\bf x}^T {\bf v}_ r)$. \\
 Donc comme ${\bf x}^TQ({\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r))^T$ est un produit scalaire de deux vecteurs réel (car ${\bf x}^T\sigma_i \in \mathbb{R}$): ${\bf x}^T\overline{\Lambda}{\bf x} = \sum_{i = 1}^r \sigma_i ({\bf x}^T{\bf v}_ i)^2$ et donc par linéarité de l'espérance~:
 $$
 \mathbb{E}[{\bf x}^T\overline{\Gamma}{\bf x}{\bf x}{\bf x}^T] = \sum_{i = 1}^r \sigma_i \mathbb{E}[({\bf x}^T{\bf v}_ i)^2{\bf x}{\bf x}^T]
@@ -204,7 +248,7 @@ $$
 \end{array}
 \right.
 $$
-En effet, $\textbf{x}\sim \mathcal{N}(0, \text{I}_d)$ donc $\lvert \lvert \textbf{x}^2 \rvert \rvert \sim \chi^2(d)$ (à d degré de liberté). Donc pour le cas particulier $x$ réel, on utilise les formules d'espérance et de variance pour $\chi^2(1)$ : $\text{Var}(x^2_1) = \mathbb{E}[x^4_1] - (\mathbb{E}[x^2_1])^2 \Leftrightarrow \mathbb{E}[x^4_1] = 2 + 1 = 3$. Pour les deux autres moments, c'est simplement de la manipulation de vecteurs indépendants ou non.
+En effet, $\textbf{x}\sim \mathcal{N}(0, \text{I}_d)$ donc $\lvert \lvert \textbf{x} \rvert \rvert^2 \sim \chi^2(d)$ (à d degré de liberté). Donc pour le cas particulier $x$ réel, on utilise les formules d'espérance et de variance pour $\chi^2(1)$ : $\text{Var}(x^2_1) = \mathbb{E}[x^4_1] - (\mathbb{E}[x^2_1])^2 \Leftrightarrow \mathbb{E}[x^4_1] = 2 + 1 = 3$. Pour les deux autres moments, c'est simplement de la manipulation de vecteurs indépendants ou non.
 Donc:
 $$
 \mathbb{E}[({\bf x}^Te_ 1)^2{\bf x}{\bf x}^T] = 2e_1e^T_1 + \text{I}_d
@@ -235,8 +279,8 @@ $$
 $$
 Ce qui conclut la preuve du Lemme 2.
 
-\subsubsection{Le lemme 2 et passage à une représentation de \textbf{B}}
-Maintenant qu'on a trouvé une expression utilisable de l'espérance théorique, on va montrer comment il va permettre de retomber sur ${\bf B}$. En posant $\gamma = 1 + \text{Tr}(\overline{\Gamma}) = 1 + \text{Tr}(\overline{\Lambda})$ 
+\subsubsection{Lemme 2 et passage à une représentation de \textbf{B}}
+Maintenant qu'on a trouvé une expression utilisable de l'espérance théorique, on va montrer comment elle va permettre de retomber sur ${\bf B}$. En posant $\gamma = 1 + \text{Tr}(\overline{\Gamma}) = 1 + \text{Tr}(\overline{\Lambda})$ 
 $$
 \Omega = \mathbb{E}\left[\frac{1}{n} \sum_{i=1}^{n}y^2_i{\bf x}_i{\bf x}^T_i\right] = 2\overline{\Gamma} + (1+ \text{tr}{(\overline{\Gamma})})\text{I}_d = 2{\bf B}\overline{\Lambda}{\bf B}^T + \gamma \text{I}_d
 $$
@@ -288,7 +332,7 @@ Il suffit maintenant de prendre la norme infinie et on obtient le résultat.\\
 
 \section{Apprentissage d'une nouvelle tâche: une estimation de $\hat{\bm{\alpha}}$}
 \subsection{Éléments de preuve du théorème 4}\label{th4}
-Le but de ce théorème est de montrer que l'algorithme 2 permet d'apprendre une nouvelle tâche (en calculant un $\bm{\alpha_{T + 1}}$) à partir d'une bonne estimation de $\hat B$ (une bonne estimation étant ici définie comme une estimation qui respecte le théorème 3, donc toute estimation faite à partir de l'algorithme 1 qui respecte nos hypothèses de départ.)\\
+Le but de ce théorème est de montrer que l'algorithme 2 \cite{MTLR_1} permet d'apprendre une nouvelle tâche (en calculant un $\bm{\alpha_{T + 1}}$) à partir d'une bonne estimation de $\hat B$ (une bonne estimation étant ici définie comme une estimation qui respecte le théorème 3 \ref{pv_th3}, donc toute estimation faite à partir de l'algorithme 1 qui respecte nos hypothèses de départ.)\\
 On va utiliser un estimateur au sens des moindres carrés défini comme il suit:
 $$
 \hat{\bm \alpha} = \arg\min_{\bm \alpha} \lvert \lvert \textbf{y} - \textbf{X}\hat{\textbf{B}} \bm{\alpha} \rvert \rvert^2
@@ -317,7 +361,7 @@ Dans cette courte partie, nous allons rappeler la définition de la régression 
 \subsubsection{Régression logistique cas uni-tâche à deux classes}
 On va prendre $\Omega = \{0, 1\}$ et $Y_i\in \Omega$ une variable aléatoire. Si on considère les covariables ${\bf x}_i = ({x}_1, \cdots, {x}_n)^T$, telle que ces vecteurs correspondent aux réalisations successives (donc les observations) des variables aléatoires respectives. Comme dans l'introduction, on assimile les variables aléatoires à leur réalisation.\\ Si on note $\pi_i = \mathbb{P}(Y_i = 1 |{\bf x}_i)$, on fait l'hypothèse qu'il existe $\alpha \in M_n(\mathbb{R})$, alors $\ln(\frac{\pi}{1-\pi}) = {\bf x}_i^T\alpha$ et donc on peut exprimer la probabilité d'appartenance à la classe 1~: 
 $$\pi_i = \frac{1}{1+e^{-({\bf x}^T_i\alpha)}}$$
-Ce modèle est un cas particulier de modèle linéaire généralisé, où on reprend l'interprétation de la régression comme une espérance conditionnelle qu'on essaye d'estimer par une fonction linéaire composée à une 
+Ce modèle est un cas particulier de modèle linéaire généralisé, où on reprend l'interprétation de la régression comme une espérance conditionnelle qu'on essaye d'estimer par une fonction linéaire.
 Ceci permet de construire un classifieur linéaire et nous permettra peut-être d'utiliser des méthodes comme l'analyse discriminante linéaire au moment du passage au multi-tâche dans les sections suivantes.\\
 Dans le cas multi-classes (que nous n'aborderons pas ici dans un premier temps), il faudrait effectuer une transformation softmax des vecteurs ${\bf x}_i$ avant d'y appliquer la régression logistique.
 
@@ -341,7 +385,7 @@ La question qui se pose maintenant, c'est de savoir dans quelle mesure peut-on o
 La plupart des articles que j'ai trouvés utilisent des modèles multi-classes en plus du multi-tâche ce qui complique les calcules et la recherche de méthode d'estimations des poids du modèle. C'est souvent des modèles à destination de la médecine pour faire de la prédiction du temps de survie de patient atteint de maladies graves comme le cancer. Le multi-tâche se fait d'ailleurs parfois sur les échelles de temps comme dans cet article pour la médecine \cite{MT-LR-1} ou la tâche va être de prédire la probabilité de décès dans un intervalle de temps donné. Cependant, cet article ne va pas nous être d'une grande aide, car la méthode utilisée pour l'apprentissage des poids utilise de l'apprentissage profond. 
 L'approche multi-tâche en termes de traitement sur des intervalles de temps semble être courante dans la bibliographie (j'ai même trouvé que ça), si bien que les modules R et Python des libraires scientifiques utilise cette implémentation dans ce qu'ils appellent une fonction MTLR (MultiTask Logistic Regression).
 
-Ces librairies font référence à un article de prédiction de temps de survie der patients atteints de cancers (Yu et al. (2011)) \cite{Cancer-survival-rate} qui propose une minimisation de la fonction coût entropie croisé binaire par la méthode de Newton. Rien ne semble apparaitre dans la littérature scientifique au sujet d'optimisation de ce genre de modèle par une descente de gradient.
+Ces librairies font référence à un article de prédiction de temps de survie der patients atteints de cancers (Yu et al. (2011)) \cite{Cancer-survival-rate} qui propose une minimisation de l'opposé de la log-vraisenblance par la méthode de Newton. Rien ne semble apparaitre dans la littérature scientifique au sujet d'optimisation de ce genre de modèle par une descente de gradient.
 
 \subsection{Approche par l'analyse discriminante linéaire}\label{LDA_1}
 En se basant sur un de Vincent Vandewalle qui donne une défintiion de l'analyse discriminante linéaire \cite{VV_clustering}, et d'après "The elements of statistical learning" et "Introduction to statistical learning" \cite{elmstatlearn}, on peut définir un modèle de classification de la manière suivante: Prenons un dataset ${({\bf x}_i, y_i)}$ avec ${\bf x}_i \in \mathbb{R}^n$ centrés, et $y_i \in \{1, \cdots, k\}$
