@@ -78,7 +78,7 @@ Dans ce document, nous commençons par décrire et analyser des techniques d'app
 \section{Introduction}
 \subsection{Introduction à l'apprentissage multitâche}
 
-L'apprentissage multitâche, \textit{MultiTask Learning (MTL) en anglais}, est un paradigme d'apprentissage qui consiste à définir, en amont, plusieurs tâches avec des jeux de donnés associés, puis à mutualiser l'apprentissage conjoint de ces tâches. Ces approches ont été très fécondes dans de nombreux domaines et pour résoudre des problèmes très différents. D'abord dans des contextes où, par manque de données, mutualiser l'apprentissage sur plusieurs tâches permet de regrouper des jeux de donnés et d'atteindre une \og masse critique \fg \, permettant d'obtenir des résultats. Par exemple, des méthodes multitâches ont été utilisées en médecine pour assister au diagnostique d'électroencéphalogrammes (EEG) \cite{EEG_LDA}. 
+L'apprentissage multitâche, \textit{MultiTask Learning (MTL) en anglais}, est un paradigme d'apprentissage qui consiste à définir, en amont, plusieurs tâches avec des jeux de données associés, puis à mutualiser l'apprentissage conjoint de ces tâches. Ces approches ont été très fécondes dans de nombreux domaines et pour résoudre des problèmes très différents. D'abord dans des contextes où, par manque de données, mutualiser l'apprentissage sur plusieurs tâches permet de regrouper des jeux de données et d'atteindre une \og masse critique \fg \, permettant d'obtenir des résultats. Par exemple, des méthodes multitâches ont été utilisées en médecine pour assister au diagnostique d'électroencéphalogrammes (EEG) \cite{EEG_LDA}. 
 Mais l'approche MTL est aussi utilisée dans des situations où il ne manque pas de données. En effet, apprendre conjointement les tâches permet aussi d'améliorer les performances des modèles sur les tâches uniques en reconnaissance d'image ou en traitement du langage naturel par exemple \cite{MTL_natural_process} tout en réduisant le problème de la grande dimension (on a moins de paramètres à estimer au total que si on avait un seul modèle par tâche.)\\
 Plus récemment, les LLM et plus généralement les "foundation models" utilisent ce même paradigme du MTL en entrainant les modèles à résoudre une tâche générale comme la prédiction du prochain mot dans une phrase puis affinent ce modèle général pour résoudre des tâches plus spécifiques. \\
 
@@ -317,8 +317,8 @@ Pour ce faire, le théorème 7 garanti que l'erreur entre $M$ et $\Omega = \math
 
 \subsection{Une première borne sur $\hat{\bf B}$} 
 \subsubsection{Éléments de preuve du théorème 3}\label{pv_th3}
-Évidement, selon les donnés et la manière de calculer les différentes matrices, il se peut qu'on trouve une matrice $\hat{{\bf B}}$ très différente de ${\bf B}$ mais ça n'a pas d'importance. Ce qui compte, c'est qu'elles représentent le même espace (ou en tout cas, on veut estimer la proximité entre les deux sous espaces décrits par les matrices, ie borner la différence entre les deux espaces), on cherche donc un moyen de comparer les espaces à partir d'une représentation par une matrice dans une certaine base.\\
-\paragraph*{Théorème 3.} \textit{En supposant les hypothèses 1 et 2 décrites à \ref{hypothèses}, en supposant en plus que les ${\bf x}_i$ sont gaussiens (loi normale d'espérance nulle et de variance égale à l'identité) et que le nombre de donnés $n_1$ est suffisamment grand \cite{MTLR_1}, alors l'estimateur $\bm{\hat{B}}$ calculé à la section \ref{lemme2} vérifie la propriété de convergence suivante}
+Évidement, selon les données et la manière de calculer les différentes matrices, il se peut qu'on trouve une matrice $\hat{{\bf B}}$ très différente de ${\bf B}$ mais ça n'a pas d'importance. Ce qui compte, c'est qu'elles représentent le même espace (ou en tout cas, on veut estimer la proximité entre les deux sous espaces décrits par les matrices, ie borner la différence entre les deux espaces), on cherche donc un moyen de comparer les espaces à partir d'une représentation par une matrice dans une certaine base.\\
+\paragraph*{Théorème 3.} \textit{En supposant les hypothèses 1 et 2 décrites à \ref{hypothèses}, en supposant en plus que les ${\bf x}_i$ sont gaussiens (loi normale d'espérance nulle et de variance égale à l'identité) et que le nombre de données $n_1$ est suffisamment grand \cite{MTLR_1}, alors l'estimateur $\bm{\hat{B}}$ calculé à la section \ref{lemme2} vérifie la propriété de convergence suivante}
 $$
 \sin(\bm{B}, \bm{\hat{B}}) \leq O\left(\sqrt{\frac{Kdr}{n_1}}\right)
 $$
@@ -353,7 +353,7 @@ Il suffit maintenant de prendre la norme infinie et on obtient le résultat.\\
 
 \section{Apprentissage d'une nouvelle tâche: une estimation de $\hat{\bm{\alpha}}$}
 \subsection{Éléments de preuve du théorème 4}\label{th4}
-\paragraph*{Théorème 4.} \textit{En supposant les hypothèses 1 et 2 décrites à \ref{hypothèses} et que le nombre de donnés $n_2$ (différent des $n_1$ donnés d'entrainement de \ref{pv_th3}) est suffisamment grand \cite{MTLR_1}, alors soit l'estimateur $\bm{\hat{B}}$ calculé à la section \ref{lemme2} vérifiant $\sin(\bm{B}, \bm{\hat{B}}) \leq \delta$, l'estimateur des moindres carrés $\bm{\hat{\alpha}}$ pour une nouvelle tâche $T+1$ vérifie la condition de convergence suivante~:}
+\paragraph*{Théorème 4.} \textit{En supposant les hypothèses 1 et 2 décrites à \ref{hypothèses} et que le nombre de données $n_2$ (différent des $n_1$ données d'entrainement de \ref{pv_th3}) est suffisamment grand \cite{MTLR_1}, alors soit l'estimateur $\bm{\hat{B}}$ calculé à la section \ref{lemme2} vérifiant $\sin(\bm{B}, \bm{\hat{B}}) \leq \delta$, l'estimateur des moindres carrés $\bm{\hat{\alpha}}$ pour une nouvelle tâche $T+1$ vérifie la condition de convergence suivante~:}
 $$
 \lvert \lvert \bm{\hat{B}\hat{\alpha}} - \bm{B\alpha}_{T+1}\rvert \rvert^2 \leq O\left( \delta^2 + \frac{r}{n_2}\right)
 $$
@@ -364,7 +364,7 @@ $$
 $$
 
 Ici, $\bf y$ est un vecteur colonne qui contient toutes les réponses du jeu d'apprentissage et $\bf X$ est une matrice qui concatène tous les vecteurs des observations du jeu d'apprentissage.  
-À priori, $\textbf{X}\hat{\textbf{B}}$ n'est pas injective donc on n'a pas unicité de $\bm {\hat \alpha}$. On va alors utiliser une démonstration algébrique afin de démonter l'existence (et oui parce que l'utilisation du mot clé $\min$ est maladroite, car on ne sait pas, à priori, si on a l'existence (et même l'unicité) d'un minimum ou non) et de caractériser ce minimum à l'aide des donnés du problème. On peut en effet utiliser les théorèmes d'existence de 
+À priori, $\textbf{X}\hat{\textbf{B}}$ n'est pas injective donc on n'a pas unicité de $\bm {\hat \alpha}$. On va alors utiliser une démonstration algébrique afin de démonter l'existence (et oui parce que l'utilisation du mot clé $\min$ est maladroite, car on ne sait pas, à priori, si on a l'existence (et même l'unicité) d'un minimum ou non) et de caractériser ce minimum à l'aide des données du problème. On peut en effet utiliser les théorèmes d'existence de 
 pseudo-solutions de systèmes surdéterminés. Ces théorèmes nous donne~:
 $$
 (\bm{X \hat{B}})^T\bm{X \hat{B}\hat{\alpha}} = (\bm{X \hat{B}})^T \textbf{y}
@@ -432,11 +432,11 @@ Comme les ${\bf x}_i \in \mathbb{R}^n$ sont centrés, $\bf X$ aussi.
 On peut alors montrer \cite{LDA-proof} que pour trouver les solutions à ce problème (c'est-à-dire trouver représentation des $\mu_k$ de chaque classe en faible dimension qui maximise le rapport ${\bf S}^{-1}_t{\bf S}_b$.), il suffit de faire une ACP sur la matrice ${\bf S}^{-1}_t{\bf S}_b$.
 \subsubsection{Analyse discriminante linéaire multitâche multiclasse (MT-MLDA)}
 On va globalement reprendre les notations d'un article qui fut le premier à introduire l'analyse discriminante linéaire multitâche pour faire de la reconnaissance d'image \cite{MT-LDA}. Notons ici que la MLDA est utilisé dans la littérature scientifique pour faire de la classification sur des électroencéphalogrammes (EEG) \cite{EEG_LDA}.\\
-On considère des tâches $t \in \{1, \cdots, R\}$ et un dataset $D = \{\tau_{1}, \cdots, \tau_{R}\}$ centré, avec pour toute tâche $t$, $\tau_t = \{({\bf x}_{t, n}, l_{t, n})\}^{N_t}_{n = 1}$ avec $l_{t, n} \in \{1, \cdots, C\}$ est l'étiquette d'appartenance à une classe pour un ${\bf x}_{t, n} \in \mathbb{R}^d$ donné, c'est-à-dire au point $n$ pour la tâche $t$. On va alors considérer qu'il existe une matrice ${\bf B}$ commune à toutes les tâches et toutes les classes. On considère ensuite qu'il y a un $\mu$ par classe dans chaque tâche. Une tâche se comporte comme une autre classe, l'apprentissage de la LDA multiclasse revient simplement à exprimer les tâches comme une classe. On peut alors écrire la chose suivante:
+On considère des tâches $t \in \{1, \cdots, R\}$ et un dataset $D = \{\tau_{1}, \cdots, \tau_{R}\}$ centré, avec pour toute tâche $t$, $\tau_t = \{({\bf x}_{t, n}, l_{t, n})\}^{N_t}_{n = 1}$ avec $l_{t, n} \in \{1, \cdots, C\}$ est l'étiquette d'appartenance à une classe pour un ${\bf x}_{t, n} \in \mathbb{R}^d$ donné, c'est-à-dire au point $n$ pour la tâche $t$. On va alors considérer qu'il existe une matrice ${\bf B}$ commune à toutes les tâches et toutes les classes. On considère ensuite qu'il y a un $\mu$ par classe dans chaque tâche. Une tâche se comporte comme une autre classe, l'apprentissage de la LDA multiclasse revient simplement à exprimer les tâches comme une classe. Ce qui nous permet d'écrire la chose suivante~:
 $$
 {\bf x}_{t, n} | (l_{t, n} = k) \hookrightarrow \mathcal{N}_d({\bf B}\mu_{t, k}, \Sigma)
 $$
-On peut alors concaténer les ${\bf x}_{t, i}$ pour une tâche $t$ tel que $\tilde{\bf x}_t = [{\bf x}_{t, 1}, \cdots, {\bf x}_{t, N_t}]^T$ et considérer la matrice indicatrice suivante:\\
+On peut alors concaténer les ${\bf x}_{t, i}$ pour une tâche $t$ tel que $\tilde{\bf x}_t = [{\bf x}_{t, 1}, \cdots, {\bf x}_{t, N_t}]^T$ et considérer la matrice indicatrice suivante~:\\
 $$
 ({\bf y}_t)_{ij} = \left\{ 
 \begin{array}{cc}
@@ -449,42 +449,42 @@ $$
 Tel que $N_{t_j}$ est le nombre d'éléments de la classe $j$ dans la tâche $t$. Ensuite, $N_t = \sum_{i = 1}^{C} N_{t_i}$ est le nombre d'éléments dans la tâche $t$.\\
 Par concaténation, on obtient nos matrices et nos quantités finales: ${\bf X} = \{{\bf x}_1, \cdots, {\bf x}_R\} \in \mathbb{R}^{N \times d}$ et ${\bf Y} = \{ {\bf y}_1, \cdots, {\bf y}_R\} \in \mathbb{R}^{N \times CR}$ et enfin $N = \sum_{i = 1}^{R} N_i$.\\
 On va alors chercher à exprimer des matrices de covariance comme dans la section d'avant, la seule chose qui va changer sera le nombre de sommations~:\\
-La matrice ${\bf S}_t$ ne va pas bouger, on va avoir:
+La matrice ${\bf S}_t$ ne va pas bouger, on va avoir~:
 $$
 {\bf S}_t = \frac{1}{N} \sum_{t = 1}^{R} \sum_{i = 1}^{N_t} {\bf x}_{t, i}{\bf x}^T_{t, i} = \frac{1}{N}{\bf X}^T{\bf X} 
 $$
-Pour la matrice ${\bf S}_b$, on va réarranger les termes:
+Pour la matrice ${\bf S}_b$, on va réarranger les termes~:
 $$
 {\bf S}_b = \frac{1}{N} \sum_{t = 1}^{R}\sum_{i = 1}^{N_t}{\bf B}\mu_{t, i}\mu^T_{t, i}{\bf B}^T = \frac{1}{N} \sum_{i = 1}^{N} {\bf B}\mu_{T(i)}\mu^T_{T(i)}{\bf B}^T
 $$
 Avec $T(i)$ indiçant la tâche et la classe en parcourant le dataset $D$ dans l'ordre des tâches et des classes.\\
 Et en reprenant les notations de \ref{lemme2}, on peut noter~: ${\bf S}_b = \overline{\Gamma}$.\\
-L'idée pour relier l'article original (et donc \ref{lemme2}) à l'analyse discriminante linéaire va être d'essayer de trouver une bonne décomposition de ces matrices et montrer qu'elles décrivent le même espace. Ceci a des chances d'être possible, car on va montrer dans la section suivante que la MLDA est équivalence à la MLR sous des hypothèses très faibles, et on peut montrer \cite{LDA-to-LRR} l'équivalence avec l'approximation de bas rang (ce qui est la première approche de l'article original.)\\
+L'idée pour relier l'article \cite{MTLR_1} (et donc \ref{lemme2}) à l'Analyse Discriminante Linéaire va être d'essayer de trouver une bonne décomposition de ces matrices et montrer qu'elles décrivent le même espace. Ceci a des chances d'être possible, car on va montrer dans la section suivante que la MLDA est équivalente à la MLR sous des hypothèses très faibles, et on peut montrer \cite{LDA-to-LRR} l'équivalence avec l'approximation de bas rang (ce qui est la première approche de l'article \cite{MTLR_1}.)\\
 Le problème majeur est que maintenant, la sortie ${\bf y}_t$ n'est plus un réel, c'est une matrice. 
 \subsubsection{Lien entre l'analyse discriminante linéaire et la régression multilinéaire}
-Il se trouve que l'Analyse discriminante linéaire et la régression multilinéaire sont équivalentes, c'est-à-dire qu'il existe une certaine matrice indicatrice telle qu'appliquer une régression dessus nous donne exactement les poids qui maximise la classification au sens de la LDA. On peut en retrouver une preuve dans la bibliographie \cite{LDA-proof}.\\
+Il se trouve que l'Analyse Discriminante Linéaire et la Régression Multilinéaire sont équivalents, c'est-à-dire qu'il existe une certaine matrice indicatrice telle qu'appliquer une régression dessus nous donne exactement les poids qui maximisent la classification au sens de la LDA. On peut en retrouver une preuve dans la bibliographie \cite{LDA-proof}.\\
 
 La preuve se découpe en deux parties, d'abord, on va montrer que notre matrice ${\bf Y}$ est bien solution d'une régression puis que cette solution peut s'exprimer à l'aide des matrices ${\bf S}_t$ et ${\bf S}_b$. La deuxième partie consiste à montrer que cette solution se trouve dans le même espace que celui des solutions du modèle de LDA associé. 
 
 On peut esquisser une preuve de l'équivalence entre la LDA et la régression multilinéaire multivariée. Ceci nous donnera des outils pour la suite.
-Soit ${\bf X} \in \mathbb{R}^{n \times d}$ une matrice composée en colonne des vecteurs ${\bf x}_i$ qui appartiennent chacun à une classe $t(i)$ à valeur dans $\{1, \cdots, R\}$. On définit la matrice de dispersion totale $T = {\bf X}^T{\bf X}$, car les donnés sont centrés. On définit une matrice indicatrice ${\bf Y} \in \mathbb{R}^{n \times R}$ tel que  $({\bf Y})_{ij} = \left\{ 
+Soit ${\bf X} \in \mathbb{R}^{n \times d}$ une matrice composée en colonne des vecteurs ${\bf x}_i$ qui appartiennent chacun à une classe $t(i)$ à valeur dans $\{1, \cdots, R\}$. On définit la matrice de dispersion totale $T = {\bf X}^T{\bf X}$, car les données sont centrés. On définit une matrice indicatrice ${\bf Y} \in \mathbb{R}^{n \times R}$ tel que  $({\bf Y})_{ij} = \left\{ 
 \begin{array}{cc}
 1 \quad \text{si} \quad t(i) = j\\
 \\
 0 \quad \text{sinon}
 \end{array}
 \right.$. De plus, on a $N_j$ points dans la classe $j$ tel que $n = \sum_{i= 1}^{R} N_i$.\\
-En reprenant les notations de \ref{LDA_1}, on a ${\bf S}_t = {\bf S}_b + {\bf S}_w$ et on peut écrire que la matrice qui contient les poids (les vecteurs $\mu_i$) qui maximisent l'écart entre les classes est ${\bf W}^{LDA} = \trace({\bf W}^T {\bf S}_b{\bf W}({\bf W}^T{\bf S}_t{\bf W})^{-1})$. Pour noter ça, il faut que la matrice ${\bf S}_t$ soit de rang maximale. Si ce n'est pas le cas, on peut prendre le pseudo inverse, en termes de valeur propre, cela revient exactement à prendre une décomposition en valeurs singulière de notre matrice et considérer seulement les valeurs propres non nulles.\\
+En reprenant les notations de \ref{LDA_1}, on a ${\bf S}_t = {\bf S}_b + {\bf S}_w$ et on peut écrire que la matrice qui contient les poids (les vecteurs $\mu_i$) qui maximisent l'écart entre les classes est ${\bf W}^{LDA} = \trace({\bf W}^T {\bf S}_b{\bf W}({\bf W}^T{\bf S}_t{\bf W})^{-1})$. Pour noter ça, il faut que la matrice ${\bf S}_t$ soit de rang maximal. Si ce n'est pas le cas, on peut prendre le pseudo inverse, en termes de valeurs propres, cela revient exactement à prendre une décomposition en valeurs singulière de notre matrice et considérer seulement les valeurs propres non nulles.\\
 
-Ensuite, de manière assez surprenante, on peut exprimer ${\bf S}_b$ sous forme de produit de ${\bf Y}$ et ${\bf X}$. En effet, on peut remarquer que ${\bf Y}^T{\bf X}$ est la matrice formée de la somme des éléments de chaque classe. Pour obtenir la moyenne, il suffit de normer par une matrice diagonale qui contient exactement le nombre d'éléments par classe sur sa diagonale. Cette matrice est exactement ${\bf Y}^T{\bf Y}$. On peut alors noter~:
+Ensuite, de manière assez surprenante, on peut exprimer ${\bf S}_b$ sous la forme d'un produit de ${\bf Y}$ et ${\bf X}$. En effet, on peut remarquer que ${\bf Y}^T{\bf X}$ est la matrice formée de la somme des éléments de chaque classe. Pour obtenir la moyenne, il suffit de normer par une matrice diagonale qui contient exactement le nombre d'éléments par classe sur sa diagonale. Cette matrice est exactement ${\bf Y}^T{\bf Y}$. On peut alors noter~:
 $$
 {\bf S}_b = {\bf X}^T{\bf Y} ({\bf Y}^T{\bf Y})^{-1}{\bf Y}^T{\bf X}
 $$
 Et si les classes sont réparties équitablement (même nombre d'éléments dans chaque classe), on a ${\bf S}_b = \frac{1}{n}{\bf X}^T{\bf Y}{\bf Y}^T{\bf X}$.\\
 Pour éviter ce problème, on pourrait normer ${\bf Y}$ pour la norme euclidienne et avoir $\tilde{\bf Y} = {\bf Y}({\bf Y}^T{\bf Y})^{\frac{-1}{2}}$ et obtenir ${\bf S}_b = {\bf X}^T\tilde{\bf Y}\tilde{\bf Y}^T{\bf X}$.\\
 
-Maintenant, reste à partir du modèle de régression multivarié sur notre matrie indicatrice. En gardant en tête la remarque faite au paragraphe ci-dessus, afin de simplifier les calculs, on peut considérer que les donnés sont réparties équitablement dans les classes. \\
-On considère le problème de minimisation suivant~: ${\bf W}^{MLR} = \arg \min_{\bf B} \lvert \lvert {\bf Y} -{\bf X}{\bf B} \rvert \rvert^2$. On décompose ${\bf Y}$ en un produit de deux matrices dont on fixe le rang max de la première à celui de ${\bf Y}$~: ${\bf Y} = {\bf D}{\bf F}^T$ avec $\rank({\bf Y}) = p$. Or, comme vu à la section \ref{th4}, si on dispose de ${\bf D}$, alors on peut trouver le ${\bf F}^T$ optimal par une régression tel que ${\bf F}^T = (({\bf XD})^T {\bf XD})^{-1}({\bf XD})^T{\bf Y}$. On peut alors remplacer ${\bf F}^T$ par son expression dans le problème de minimisation: $\lvert \lvert {\bf Y} -{\bf X}{\bf D}(({\bf XD})^T {\bf XD})^{-1}({\bf XD})^T{\bf Y} \rvert \rvert^2$, or, pour une matrice, on a $\lvert \lvert A \rvert \rvert^2 = \trace(AA^T)$, d'où~:
+Maintenant, reste à partir du modèle de régression multivarié sur notre matrice indicatrice. En gardant en tête la remarque faite au paragraphe ci-dessus, afin de simplifier les calculs, on peut considérer que les données sont réparties équitablement dans les classes. \\
+On considère le problème de minimisation suivant~: ${\bf W}^{MLR} = \arg \min_{\bf B} \lvert \lvert {\bf Y} -{\bf X}{\bf B} \rvert \rvert^2$. On décompose ${\bf Y}$ en un produit de deux matrices dont on fixe le rang max de la première à celui de ${\bf Y}$~: ${\bf Y} = {\bf D}{\bf F}^T$ avec $\rank({\bf Y}) = p$. Or, comme vu à la section \ref{th4}, si on dispose de ${\bf D}$, alors on peut trouver le ${\bf F}^T$ optimal par une régression tel que ${\bf F}^T = (({\bf XD})^T {\bf XD})^{-1}({\bf XD})^T{\bf Y}$. On peut alors remplacer ${\bf F}^T$ par son expression dans le problème de minimisation~: $\lvert \lvert {\bf Y} -{\bf X}{\bf D}(({\bf XD})^T {\bf XD})^{-1}({\bf XD})^T{\bf Y} \rvert \rvert^2$, or, pour une matrice, on a $\lvert \lvert A \rvert \rvert^2 = \trace(AA^T)$, d'où~:
 $$
 {\bf W}^{MLR} = \arg \min_{\bf D} \lvert \lvert {\bf Y} -{\bf X}{\bf D}(({\bf XD})^T {\bf XD})^{-1}({\bf XD})^T{\bf Y} \rvert \rvert^2 = \arg \min_{\bf D} \lvert \lvert {\bf Y} -{\bf P}{\bf Y} \rvert \rvert^2
 $$
@@ -504,11 +504,11 @@ $$
 La première ligne est possible car ${\bf YY}^T$ ne dépend pas de D et que passer d'une minimisation à une maximisation revient à changer le signe.\\
 Ceci conclut la preuve pour le cas où les classes contiennent le même nombre d'éléments. Dans le cas contraire, il suffit de remplacer ${\bf Y}$ par $\tilde{\bf Y}$.\\
 
-Il est intéressant de noter que sous nos hypothèses, et en considérant que l'on dispose d'une bonne matrice ${\bf B}$ (qui ici serait plus ou moins équivalent au $\beta_{t(i)}$ du début de ce document), les résultats du théorème 4 (\ref{th4}) fonctionnent immédiatement et donc il est possible d'apprendre une nouvelle tâche à notre modèle de MLDA de la même manière qu'on le ferait dans l'article original \cite{MTLR_1}.\\
+Il est intéressant de noter que sous nos hypothèses, et en considérant que l'on dispose d'une bonne matrice ${\bf B}$ (qui ici serait plus ou moins équivalente au $\beta_{t(i)}$ du début de ce document), les résultats du théorème 4 (\ref{th4}) fonctionnent immédiatement et donc il est possible d'apprendre une nouvelle tâche à notre modèle de MLDA de la même manière qu'on le ferait dans l'article original \cite{MTLR_1}.\\
 Cependant, il n'est pas possible de transposer immédiatement les résultats de \ref{part_original_article} à notre modèle de LDA car notre sortie est une matrice et les preuves de la section \ref*{part_original_article} nécessite une sortie en dimension 1. 
 
 \section{Conclusion}
-Un des objectifs premier de ce stage a été de me familiariser avec la régression en grande dimension et les problèmes d'apprentissage multitâche. L'objectif fut ensuite d'étudier un article mettant en avant une nouvelle méthode d'estimations des poids d'un modèle de MTL linéaire par le calcul d'un estimateur des moments. Après avoir détaillé plusieurs preuves absentes de l'article original \cite{MTLR_1}, l'objectif était d'étudier dans quelle mesure il pourrait être possible de transposer ces méthodes à des problèmes de classification. En particulier, la question était de savoir s'il y avait un moyen simple d'utiliser un estimateur des moments en classification. Après n'avoir rien trouvé d'intéressant autour de la régression logistique, un choix a été fait de se concentrer sur l'Analyse Discriminante Linéaire à cause des similarités entre ce problème et le traitement de la régression dans l'article originel \cite{MTLR_1}. Malgré les nombreuses similitudes au sujet de la LDA et de \cite{MTLR_1}, il n'a pas été possible de montrer que les résultats de l'article \cite{MTLR_1} pouvaient s'appliquer au modèle \ref{LDA_1}.
+Un des objectifs premier de ce stage a été de me familiariser avec la régression en grande dimension et les problèmes d'apprentissage multitâche. L'objectif fut ensuite d'étudier un article mettant en avant une nouvelle méthode d'estimation des poids d'un modèle de MTL linéaire par le calcul d'un estimateur des moments. Après avoir détaillé plusieurs preuves absentes de l'article originel \cite{MTLR_1}, l'objectif était d'étudier dans quelle mesure il pourrait être possible de transposer ces méthodes à des problèmes de classification. En particulier, la question était de savoir s'il y avait un moyen simple d'utiliser un estimateur des moments en classification. Après n'avoir rien trouvé d'intéressant autour de la régression logistique, un choix a été fait de se concentrer sur l'Analyse Discriminante Linéaire à cause des similarités entre ce problème et le traitement de la régression dans l'article \cite{MTLR_1}. Malgré les nombreuses similitudes au sujet de la LDA et de \cite{MTLR_1}, il n'a pas été possible de montrer que les résultats de l'article \cite{MTLR_1} pouvaient s'appliquer au modèle \ref{LDA_1}.
 \bibliography{mybib}{}
 \bibliographystyle{plain}
 \end{document}
