@@ -78,16 +78,16 @@ Dans ce document, nous commençons par décrire et analyser des techniques d'app
 \section{Introduction}
 \subsection{Introduction à l'apprentissage multitâche}
 
-L'apprentissage multitâche, \textit{MultiTask Learning (MTL) en anglais}, est un paradigme d'apprentissage qui consiste à définir, en amont, plusieurs tâches avec des jeux de donnés associés, puis à mutualiser l'apprentissage conjoint de ces tâches. Ces approches ont été très fécondes dans de nombreux domaines et pour résoudre des problèmes très différents. D'abord dans des contextes où, par manque de donnés, mutualiser l'apprentissage sur plusieurs tâches permet de regrouper des jeux de donnés et d'atteindre une \og masse critique \fg \, permettant d'obtenir des résultats. Par exemple, des méthodes multitâches ont été utilisées en médecine pour assister au diagnostique d'électroencéphalogrammes (EEG) \cite{EEG_LDA}. 
-Mais l'approche MTL est aussi utilisé dans des situations où il ne manque pas de donnés. En effet, apprendre conjointement les tâches permet aussi d'améliorer les performances des modèles sur les tâches uniques en reconnaissance d'image ou en traitement du langage naturel par exemple \cite{MTL_natural_process} tout en réduisant le problème de la grande dimension (on a moins de paramètres à estimer au total que si on avait un seul modèle par tâche.)\\
+L'apprentissage multitâche, \textit{MultiTask Learning (MTL) en anglais}, est un paradigme d'apprentissage qui consiste à définir, en amont, plusieurs tâches avec des jeux de donnés associés, puis à mutualiser l'apprentissage conjoint de ces tâches. Ces approches ont été très fécondes dans de nombreux domaines et pour résoudre des problèmes très différents. D'abord dans des contextes où, par manque de données, mutualiser l'apprentissage sur plusieurs tâches permet de regrouper des jeux de donnés et d'atteindre une \og masse critique \fg \, permettant d'obtenir des résultats. Par exemple, des méthodes multitâches ont été utilisées en médecine pour assister au diagnostique d'électroencéphalogrammes (EEG) \cite{EEG_LDA}. 
+Mais l'approche MTL est aussi utilisée dans des situations où il ne manque pas de données. En effet, apprendre conjointement les tâches permet aussi d'améliorer les performances des modèles sur les tâches uniques en reconnaissance d'image ou en traitement du langage naturel par exemple \cite{MTL_natural_process} tout en réduisant le problème de la grande dimension (on a moins de paramètres à estimer au total que si on avait un seul modèle par tâche.)\\
 Plus récemment, les LLM et plus généralement les "foundation models" utilisent ce même paradigme du MTL en entrainant les modèles à résoudre une tâche générale comme la prédiction du prochain mot dans une phrase puis affinent ce modèle général pour résoudre des tâches plus spécifiques. \\
 
 Cependant, dans la plupart des cas, il n'est pas possible d'obtenir des garanties théoriques (notamment en ce qui concerne les réseaux de neurones.) Dans un premier temps, nous aborderons donc des modèles de MTL linéaire dans lesquels il est possible d'obtenir de nombreux résultats théoriques. Dans un second temps, l'objectif sera d'étudier la généralisation de ces garanties théoriques du cas linéaire à d'autres cadres, comme en classification supervisée en regardant le cas de la régression logistique et de l'analyse discriminante linéaire.\\
 
-L'article \cite{MTLR_1} propose une méthode d'apprentissage simple qui utilise un estimateur des moments sur une matrice bien choisie et facilement calculable avec des garantis théoriques puissante. Ce sont les théorèmes qui garantissent l'existence et la convergence de cet estimateur des moments que nous allons étudier.\\
+L'article \cite{MTLR_1} propose une méthode d'apprentissage simple qui utilise un estimateur des moments sur une matrice bien choisie et facilement calculable avec des garantis théoriques puissante. La méthode des moments, bien que classique pour déterminer des estimateurs, est rare en MTL, l'optimisation de bas rang lui étant préféré dans la littérature scientifique. Ce sont les théorèmes qui garantissent l'existence et la convergence de cet estimateur des moments que nous allons étudier.\\
 
 %fin du paragraphe, lien avec celui d'après.
-\noindent Commençons par introduire les méthodes de régression linéaire et multi-linéaire ainsi que les différents enjeux associés en terme d'apprentissages.
+\noindent Commençons par introduire les méthodes de régression linéaire et multi-linéaire ainsi que les différents enjeux associés en terme d'apprentissage.
 
 \subsection{Rappel sur les régressions}
 
@@ -126,25 +126,25 @@ $$
 Cependant, ce modèle nécessite l'estimation de nombreux paramètres, ce qui peut poser des problèmes si ce nombre est supérieur au nombre d'exemples disponibles.
 
 \subsection{Présentation d'un premier modèle multitâche}
-Afin de résoudre le problème de coût de calcul et surtout de qualité des estimateurs, présenté à la section précédente, sous l'hypothèse selon laquelle les entrées contiennent suffisamment d'information pour faire de la prédiction sur plusieurs tâches, il parait raisonnable de considérer que certaines de ces tâches contiennent des caractéristiques communes parmi les entrées. Ce qu'on peut faire c'est imaginer avoir des paramètres communs à toutes les tâches et avoir des coefficients d'ajustement, par tâches, pour permettre une meilleure estimation. On va donc utiliser le modèle suivant étudié dans l'article \cite{MTLR_1}~:
+Afin de résoudre le problème de coût de calcul et surtout de qualité des estimateurs, présenté à la section précédente, sous l'hypothèse selon laquelle les entrées contiennent suffisamment d'information pour faire de la prédiction sur plusieurs tâches, il parait raisonnable de considérer que certaines de ces tâches contiennent des caractéristiques communes parmi les entrées. Ce qu'on peut faire, c'est imaginer avoir des paramètres communs à toutes les tâches et avoir des coefficients d'ajustement, par tâche, pour permettre une meilleure estimation. On va donc utiliser le modèle suivant étudié dans l'article \cite{MTLR_1}~:
 \\
 $$
 y_i  = {\bf x}^T_i{\bf B}{\bm \alpha}_{t(i)} + \epsilon_i
 $$
 
-\noindent Dans ce modèle, on dispose d'un vecteur d'entrées comprenant $d$ variables et de vecteurs de paramètres ${\bm \alpha}_{t(i)} \in M_{r, 1}(\mathbb{R}), r \leq d$ spécifiques à une tâche $t(i)$ permettant de prévoir la sortie $y_i$. On va donc numéroter les tâches dans $I = \{1, \cdots, T\}$ et donc $t(i) \in I$\\
+\noindent Dans ce modèle, on dispose d'un vecteur d'entrées comprenant $d$ variables et des vecteurs de paramètres ${\bm \alpha}_{t(i)} \in M_{r, 1}(\mathbb{R}), r \leq d$ spécifiques à une tâche $t(i)$ permettant de prévoir la sortie $y_i$. On va numéroter les tâches dans $I = \{1, \cdots, T\}$ et donc $t(i) \in I$\\
 De plus, contrairement à un modèle linéaire classique, on dispose d'une matrice ${\bf B}$, \textbf{commune} à toutes les tâches qui comprend des caractéristiques communes à plusieurs tâches permettant de mutualiser l'apprentissage et la prédiction $y_i$. Les indices $t(i)$, permettent simplement d'indicer les tâches. \\
 
 Tout l'enjeu de l'article \cite{MTLR_1} et de montrer qu'il existe des méthodes simples, sous certaines bonnes hypothèses, pour récupérer un estimateur $\hat {\bf B}$ de la matrice ${\bf B}$ efficacement et puis de montrer qu'on a des meilleures estimations avec un coût plus faible qu'en cherchant uniquement des ${\bm \alpha}_{t}$.\\
-L'article se décompose donc en deux grandes parties: d'abord la phase de "Meta-Learning" où on va essayer de trouver $\hat {\bf B}$ avec suffisamment de précision et avec un algorithme simple et efficace, puis la phase de "Meta-Test" qui va permettre de montrer que le calcul de $\hat B$ va permettre de transférer une part de l'apprentissage à une nouvelle tâche $T+1$ en estimant ${\bm \alpha}_{T+1}$ à $\bm{\hat{B}}$ fixé. 
+L'article se décompose donc en deux grandes parties: d'abord la phase de "Meta-Learning" où on va essayer de trouver $\hat {\bf B}$ avec suffisamment de précision et avec un algorithme simple et efficace, puis la phase de "Meta-Test" qui va permettre de montrer que le calcul de $\hat {\bf B}$ va permettre de transférer une part de l'apprentissage à une nouvelle tâche $T+1$ en estimant ${\bm \alpha}_{T+1}$ à $\bm{\hat{B}}$ fixé. 
 
 \subsection{Conventions}
-On s'efforcera, tout au long de ce rapport, à suivre les notations de l'article \cite{MTLR_1} dont on fait l'analyse et dont on détaille les preuves plus loin.\\
+On s'efforcera, tout au long de ce rapport, à suivre les notations de l'article \cite{MTLR_1}, en particulier pour les sections dont on détaille les preuves plus loin.\\
 
-\noindent Par soucis de clarté, on va identifier $\mathbb{R}^n$ aux matrices lignes, donc les notations de l'article nous donnent~: ${\bf x}_i \in M_{d, 1}(\mathbb{R})$ et donc ${\bf x}^T_i \in M_{1, d}(\mathbb{R})$. On a donc, avec ces conventions, ${\bf B} \in M_{d, r}(\mathbb{R})$ et ${\bm \alpha}_{t(i)}\in M_{r, 1}(\mathbb{R}), r \leq d$ afin d'avoir $y_i \in \mathbb{R}$ et $\epsilon_i \in \mathbb{R}$. \\
+\noindent Par soucis de clarté, on va identifier $\mathbb{R}^n$ aux matrices lignes. Les notations de l'article nous donnent~: ${\bf x}_i \in M_{d, 1}(\mathbb{R})$ et donc ${\bf x}^T_i \in M_{1, d}(\mathbb{R})$. On a, avec ces conventions, ${\bf B} \in M_{d, r}(\mathbb{R})$ et ${\bm \alpha}_{t(i)}\in M_{r, 1}(\mathbb{R}), r \leq d$ afin d'avoir $y_i \in \mathbb{R}$ et $\epsilon_i \in \mathbb{R}$. \\
 
 \noindent On s'autorisera parfois à noter $t(i) = t$ qui restera implicitement une fonction de $i$ à valeur dans $I = \{1, \cdots, T\}$ afin d'alléger les notations.\\
-Les $({\bf x}_i)$ représentent des vecteurs observations. Quand cela sera nécessaire (pour choisir un représentant pour une espérance car ils suivent tous la même loi par exemple), on s'autorisera à noter ${\bf x}_1 = {\bf x}$ un vecteur quelconque de $({\bf x}_i)$ pour alléger encore une fois les notations.
+Les $({\bf x}_i)$ représentent des vecteurs observations. Quand cela sera nécessaire (pour choisir un représentant dans le calcul d'une espérance, car ils suivent tous la même loi par exemple), on s'autorisera à noter ${\bf x}_1 = {\bf x}$ un vecteur quelconque de $({\bf x}_i)$ pour alléger encore une fois les notations.
 Il conviendra donc de distinguer $\textbf{x}_i$ (en gras) qui sera le i-ième vecteur d'observation et $x_i$ qui sera la i-ième composante d'un vecteur quelconque.\\
 Les lettres majuscules désignent toujours des matrices, quelles soient en gras ou non. Le gras permet soit de coller aux notations de l'article soit de distinguer les composantes des vecteurs avec les vecteurs en eux-mêmes.\\
 
@@ -158,9 +158,9 @@ On pourra se permettre de parler de "matrices orthogonales" pour des matrices do
 Nous allons ici exposer les hypothèses faites sur le modèle et sur les entrées ainsi que des méthodes générales qui vont être utilisées pour montrer les résultats important tout au long de l'article.
 
 \subsection{La méthode des moments}\label{moments}
-Le but de la méthode des moments est d'estimer un paramètre $\lambda$ en remplaçant son moment théorique par un moment empirique (sous certaines conditions d'existence explicitées juste après). On a alors que le moment empirique de la variable aléatoire converge presque-sûrement vers l'espérance de la variable aléatoire par la loi forte des grands nombres.\\
+Le but de la méthode des moments est d'estimer un paramètre $\lambda$ en remplaçant son moment théorique par un moment empirique (sous certaines conditions d'existence explicitées juste après). On obtient alors que le moment empirique de la variable aléatoire converge presque-sûrement vers l'espérance de la variable aléatoire par la loi forte des grands nombres.\\
 
-Soit $g$ une fonction mesurable et $m = \mathbb{E}[g(X)] < + \infty$, et des variables aléatoires i.i.d. $X_1, \cdots, X_n$ de même loi que $X$, dépendantes d'un paramètre $\lambda$. Supposons qu'il existe un $\mathcal{C}^1$-difféomorphisme sur un ouvert de $\mathbb{R}$ $\phi$, tel que $\phi(\lambda) = m$. On peut alors écrire $\lambda = \phi^{-1}(m)$. Par la loi forte des grands nombres, en posant $\hat{m_n} = \sum_{i=1}^{n} g(X_i)$, on a $\hat{m_n} \xrightarrow{p.s.} m$ et puis par le théorème de continuité, en considérant l'estimateur $\hat{\lambda} = \phi^{-1}(\hat{m_{n}})$, appelé "estimateur des moments", on a $\hat{\lambda} \xrightarrow{p.s.} \lambda$ et donc $\hat{\lambda}$ est un estimateur fortement consistant de $\lambda$. \\
+Soit $g$ une fonction mesurable et $m = \mathbb{E}[g(X)] < + \infty$, et des variables aléatoires i.i.d. $X_1, \cdots, X_n$ de même loi que $X$, dépendantes d'un paramètre $\lambda$. Supposons qu'il existe un $\mathcal{C}^1$-difféomorphisme $\phi$ sur un ouvert de $\mathbb{R}$, tel que $\phi(\lambda) = m$. On peut alors écrire $\lambda = \phi^{-1}(m)$. Par la loi forte des grands nombres, en posant $\hat{m_n} = \sum_{i=1}^{n} g(X_i)$, on a $\hat{m_n} \xrightarrow{p.s.} m$ et puis par le théorème de continuité, en considérant l'estimateur $\hat{\lambda} = \phi^{-1}(\hat{m_{n}})$, appelé "estimateur des moments", on a $\hat{\lambda} \xrightarrow{p.s.} \lambda$ et donc $\hat{\lambda}$ est un estimateur fortement consistant de $\lambda$. \\
 Par exemple~: Supposons que $X$ suit une loi exponentielle de paramètre $\lambda$, g est l'identité, m = $\mathbb{E}[X]= \frac{1}{\lambda}$ et on a $\phi(x) = \frac{1}{x}$ qui est bien un $\mathcal{C}^1$-difféomorphisme sur $\mathbb{R}^{+}$ donc on peut appliquer la méthode~: 
 $$
 \overline{X} = \frac{1}{n} \sum_{i=1}^{n} X_i \quad \text{et} \quad \overline{X} = \hat m_n
@@ -189,13 +189,13 @@ L'hypothèse de sous-exponentielle permet d'appliquer des inégalités de concen
 On va donc décrire et expliciter ici certains points des preuves et de la méthode qui va nous permettre de calculer $\hat {\bf B}$.
 
 \subsection{Algorithme 1}\label{algo1}
-L'algorithme 1 nous dit que faire une décomposition en valeurs singulières (ici la matrice est évidement carré symétrique et même définie positive donc cela revient à la diagonaliser en prenant les valeurs propres dans le sens décroissant par le théorème spectral) de la matrice $M = \frac{1}{n} \sum_{i=1}^{n}y^2_i{\bf x}_i{\bf x}^T_i$ on obtient $\hat {\bf B}$ comme matrice de la base dans laquelle $M$ est diagonale.
+L'algorithme 1 nous dit que faire une décomposition en valeurs singulières de la matrice $M = \frac{1}{n} \sum_{i=1}^{n}y^2_i{\bf x}_i{\bf x}^T_i$ permet d'obtenir $\hat {\bf B}$ comme matrice de la base dans laquelle $M$ est diagonale. Ici, la matrice est évidement carré symétrique et même définie positive donc cela revient à la diagonaliser en prenant les valeurs propres dans le sens décroissant par le théorème spectral.
 \begin{algorithm}
 \caption{Estimateur des moments}\label{alg:cap}
 \begin{algorithmic}
 \renewcommand{\algorithmicrequire}{\textbf{Input: }}
 \Require $\{(\textbf{x}_i, y_i)\}^{n_1}_{i = 1}$
-\State $\bm{\hat{B}D}_1\bm{\hat{B}}^T \gets \text{r-première ACP de \,} \frac{1}{n_1} \sum^{n_1}_{i = 1}y^2_i\textbf{x}_i\textbf{x}^T_i$
+\State $\bm{\hat{B}D}_1\bm{\hat{B}}^T \gets \text{r-première valeurs propre par ACP de \,} \frac{1}{n_1} \sum^{n_1}_{i = 1}y^2_i\textbf{x}_i\textbf{x}^T_i$
 \State \textbf{return} $\bm{\hat{B}}$
 \end{algorithmic}
 \end{algorithm}
@@ -211,7 +211,7 @@ $$
 On définie en plus $\overline{\Lambda} = \frac{1}{n} \sum_{i=1}^{n}{\bm \alpha}_{t} {\bm \alpha}^T_t$.} \\
 
 \noindent \textbf{Preuve}~:\\
-On va commencer par remarquer que $y_i \in \mathbb{R}$ donc $y_i = y^T_i$ et en particulier $y^2_i = y_iy^T_i$ (1) et si on a une famille $({\bf z}_i)$ des vecteurs qui suivent la même loi et sont indépendants et identiquement distribués, si $\overline{{\bf z}} = \frac{1}{n} \sum_{i=1}^{n} {\bf z}_i$ alors $\mathbb{E}[\overline{{\bf z}}] = \mathbb{E}[{\bf z}]$ (2). On rappelle que $t$ reste une fonction de $i$, mais on ne le note pas pour alléger les notations (en particulier, les sommes sur $i$ dans les calculs suivant sont effectivement indicés par $i$). \\
+On va commencer par remarquer que $y_i \in \mathbb{R}$ donc $y_i = y^T_i$ et en particulier $y^2_i = y_iy^T_i$ (1) et si on a une famille $({\bf z}_i)$ des vecteurs qui suivent la même loi et sont indépendants et identiquement distribués, si $\overline{{\bf z}} = \frac{1}{n} \sum_{i=1}^{n} {\bf z}_i$ alors $\mathbb{E}[\overline{{\bf z}}] = \mathbb{E}[{\bf z}]$ (2). On rappelle que $t$ reste une fonction de $i$, mais on ne le note pas pour alléger les notations (en particulier, les sommes sur $i$ facteurs d'indice $t$ dans les calculs suivant sont effectivement indicés par $i$). \\
 Maintenant en utilisant (1)~:
 $$
 \mathbb{E}\left[\frac{1}{n} \sum_{i=1}^{n}y^2_i{\bf x}_i{\bf x}^T_i\right] = \mathbb{E}\left[\frac{1}{n} \sum_{i=1}^{n}y_iy^T_i{\bf x}_i{\bf x}^T_i\right] = \mathbb{E}\left[\frac{1}{n} \sum_{i=1}^{n}({\bf x}^T_i {\bf B}{\bm \alpha}_t {\bm \alpha}^T_t{\bf B}^T{\bf x}_i + \epsilon_i \epsilon^T_i) {\bf x}_i{\bf x}^T_i\right]
@@ -239,12 +239,12 @@ On peut alors considérer $\overline{\Gamma} = \begin{bmatrix}
 \overline{\Lambda} & 0\\
 0 & 0
 \end{bmatrix} \tilde{{\bf B}}^T$ tel que $\tilde{{\bf B}}$ est bien une matrice carrée et orthogonale (qui existe par le théorème de la base incomplète car nous sommes en dimension finie) qui est simplement l'expression de $\overline{\Gamma}$ dans l'espace $M_{d,d}(\mathbb{R})$ (qui contient $M_{d,r}(\mathbb{R})$) et qui va simplement ajouter des $0$ au spectre de $\overline{\Gamma}$ (et donc celui de $\overline{\Lambda}$). Or ${\bf B}$ est de rang au plus $r$ et on s'intéresse seulement aux $r$-premières valeurs propres donc ça ne change pas les propriétés de notre décomposition. On utilisera donc $\bf B$ dans la suite à la place de $\tilde{{\bf B}}$ sans que cela ne change quelque chose à la validité des calculs car on a simplement besoin de vérifier l'égalité des spectres et c'est chose faite.\\
-Maintenant, une matrice orthogonale est une matrice de changement de base orthogonale, donc $\text{Sp}(\overline{\Gamma}) = \text{Sp}(\overline{\Lambda})$ et donc on peut dire "quelles se comportent de la même manière" au sens des transformations dans l'espace. On va donc noter $\sigma_i$ leurs valeurs propres. On va noter $Q \in \mathbb{O}_d(\mathbb{R})$ la matrice de la base orthogonale dans laquelle $\overline{\Lambda}$ est diagonale.
+Maintenant, une matrice orthogonale est une matrice de changement de base orthogonale, donc $\text{Sp}(\overline{\Gamma}) = \text{Sp}(\overline{\Lambda})$ et donc on peut dire "quelles se comportent de la même manière" au sens des transformations dans l'espace. On va donc noter $\sigma_i$ leurs valeurs propres. Ensuite, on note $Q \in \mathbb{O}_d(\mathbb{R})$ la matrice de la base orthogonale dans laquelle $\overline{\Lambda}$ est diagonale.
 $$
 \mathbb{E}[{\bf x}^T\overline{\Lambda}{\bf x}{\bf x}{\bf x}^T] = \mathbb{E}[{\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r)Q^T{\bf x}{\bf x}{\bf x}^T]
 $$
 Mais, il faut garder à l'esprit que ${\bf x}^T\overline{\Lambda}{\bf x} \in \mathbb{R}$ et donc que ${\bf x}^TQ \in \mathbb{R}^d$. Par conséquent, on peut écrire ${\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r)Q^T{\bf x} = {\bf x}^TQ({\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r))^T$ et si on note $Q = ({\bf v}_1, ..., {\bf v}_ r)$, on a ${\bf x}^TQ = ({\bf x}^T{\bf v}_1, ..., {\bf x}^T {\bf v}_r)$ et donc ${\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r) = (\sigma_1 {\bf x}^T{\bf v}_ 1, ..., \sigma_r {\bf x}^T {\bf v}_ r)$. \\
-Donc comme ${\bf x}^TQ({\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r))^T$ est un produit scalaire de deux vecteurs réel (car ${\bf x}^T\sigma_i \in \mathbb{R}$): ${\bf x}^T\overline{\Lambda}{\bf x} = \sum_{i = 1}^r \sigma_i ({\bf x}^T{\bf v}_ i)^2$ et donc par linéarité de l'espérance~:
+Comme ${\bf x}^TQ({\bf x}^TQ\text{Diag}(\sigma_1, ..., \sigma_r))^T$ est un produit scalaire de deux vecteurs réel (car ${\bf x}^T\sigma_i \in \mathbb{R}$): ${\bf x}^T\overline{\Lambda}{\bf x} = \sum_{i = 1}^r \sigma_i ({\bf x}^T{\bf v}_ i)^2$ et par linéarité de l'espérance~:
 $$
 \mathbb{E}[{\bf x}^T\overline{\Gamma}{\bf x}{\bf x}{\bf x}^T] = \sum_{i = 1}^r \sigma_i \mathbb{E}[({\bf x}^T{\bf v}_ i)^2{\bf x}{\bf x}^T]
 $$
@@ -273,7 +273,7 @@ Puis, on va effectuer la même méthode pour ${\bf v}_i$ (donc un vecteur colonn
 $$
 ({\bf x}^T{\bf v})^2 = (\sum_{j = 1}^d x_jv_ j)^2 = \sum_{0\leq i,j\leq d} v_iv_jx_ix_j
 $$
-Et on note comme les $v_j$ sont des scalaires, par linéarité de l'espérance, on a~:
+Et comme les $v_j$ sont des scalaires, par linéarité de l'espérance, on a~:
 $$
 \mathbb{E}[({\bf x}^T{\bf v})^2{\bf x}{\bf x}^T] = \sum_{0\leq i,j\leq d} v_iv_j \mathbb{E}[x_ix_j{\bf x}{\bf x}^T]
 $$
