@@ -373,14 +373,14 @@ Une manière de voir que le théorème fonctionne est grâce au théorème de l'
 $$
 (x \mid A^TAx) = x^TA^TAx = (Ax)^T(Ax) = \lvert \lvert Ax \rvert \rvert^2 > 0 
 $$
-On voit donc il suffit de montrer que $A = \bm{X \hat{B}}$ est de rang supérieur ou égal à r. $\bm{\hat{B}}$ est une matrice orthogonale donc elle ne va pas modifier le rang, il suffit d'avoir $\rank(\textbf{X}) \geq r$ pour que $A^TA$ soit inversible. C'est le cas, car les $(x_i)_{[|1, n_ 2|]}$ qui forment les colonnes de $\bf X$ contiennent presque surement un sous famille génératrice de $\mathbb{R}^r$ (ils sont indépendants et identiquement distribué d'après l'hypothèse 1) et $n_2 >> d >> r$ (on a au moins $r\leq \frac{d}{2}$), de plus, par l'hypothèse 2, il nous faut que les ${\bf x}_i$ contiennent suffisamment d'information pour faire l'estimation des $\alpha_{t(i)}$. On peut donc écrire~:
+On voit donc qu'il suffit de montrer que $A = \bm{X \hat{B}}$ est de rang supérieur ou égal à r. $\bm{\hat{B}}$ est une matrice orthogonale donc elle ne va pas modifier le rang, il suffit d'avoir $\rank(\textbf{X}) \geq r$ pour que $A^TA$ soit inversible. C'est le cas, car les $(x_i)_{[|1, n_ 2|]}$ qui forment les colonnes de $\bf X$ contiennent presque surement un sous famille génératrice de $\mathbb{R}^r$ (ils sont indépendants et identiquement distribués d'après l'hypothèse 1) et $n_2 >> d >> r$ (on a au moins $r\leq \frac{d}{2}$), de plus, par l'hypothèse 2, il nous faut que les ${\bf x}_i$ contiennent suffisamment d'information pour faire l'estimation des $\alpha_{t(i)}$. On peut donc écrire~:
 $$
 \bm{\hat{\alpha}} = ((\bm{X \hat{B}})^T\bm{X \hat{B}})^{-1}(\bm{X \hat{B}})^T \textbf{y}
 $$
 Ensuite, il suffit de poser $\bm{y = X \hat{B} \alpha + \epsilon}$ et d'utiliser l'expression de $\bm {\hat{\alpha}}$ dans l'expression $\bm{\hat{B}\hat{\alpha}} - \bm{B \alpha_0}$, d'en prendre la norme au carré et d'utiliser les Lemmes 18 et 19 pour borner les termes et on obtient le théorème 4.
 
 \section{Généralisation de ces méthodes à la classification}
-Dans cette partie, nous allons regarder les possibilités pour étendre le modèle multi-tâches, avec lequel on a travaillé dans les sections du dessus, à des cas non linéaire. En particulier, nous allons en premier lieu aborder le cas de la classification binaire avec une régression logistique.
+Dans cette partie, nous allons regarder les possibilités pour étendre le modèle multi-tâches, avec lequel on a travaillé dans les sections du dessus, à des cas non linéaire. En particulier, nous allons en premier lieu aborder le cas de la classification binaire avec une régression logistique puis étudier le cas de l'analyse discriminante linéaire.
 \subsection{Approche par la régression logistique}
 Dans cette courte partie, nous allons rappeler la définition de la régression logistique puis définir une version multitâche en faisant une recherche bibliographique sur ce qui se fait dans la littérature. 
 \subsubsection{Régression logistique cas uni-tâche à deux classes}
@@ -400,24 +400,24 @@ $$
 $$
 Et que l'on peut optimiser à l'aide de la méthode de Newton-Raphson. 
 \subsubsection{Approche naïve à la régression logistique multi-tâche binaire}
-On va essayer de poser bêtement un modèle qui combine notre modèle multi-tâche et celui vu ci-dessus, et on va essayer d'estimer ses paramètres à l'aide des méthodes développés plus haut. On peut donc poser, avec les conventions des sections précédentes et en les appliquer au modèle de régression logistique vu plus haut~:
+On va essayer de poser bêtement un modèle qui combine notre modèle multi-tâche et celui vu ci-dessus, et on va essayer d'estimer ses paramètres à l'aide des méthodes développés plus haut. On peut donc poser, avec les conventions des sections précédentes et en les appliquant au modèle de régression logistique vu plus haut~:
 $$
 \pi_i = \frac{1}{1+ e^{-({\bf x}^T_i{\bf B}\alpha_{t(i)})}}
 $$
-La question qui se pose maintenant, c'est de savoir dans quelle mesure peut-on obtenir une bonne approximation de ${\bf B}$ et de $\alpha$ afin de pouvoir faire apprendre le modèle. 
+La question qui se pose maintenant, c'est de savoir dans quelle mesure on peut obtenir une bonne approximation de ${\bf B}$ et de $\alpha$ afin de pouvoir faire apprendre le modèle. 
 
 \subsubsection{Ce qui se fait dans la littérature sur la régression logistique multi-tâche}
-La plupart des articles que j'ai trouvés utilisent des modèles multi-classes en plus du multi-tâche ce qui complique les calcules et la recherche de méthode d'estimations des poids du modèle. C'est souvent des modèles à destination de la médecine pour faire de la prédiction du temps de survie de patient atteint de maladies graves comme le cancer. Le multi-tâche se fait d'ailleurs parfois sur les échelles de temps comme dans cet article pour la médecine \cite{MT-LR-1} ou la tâche va être de prédire la probabilité de décès dans un intervalle de temps donné. Cependant, cet article ne va pas nous être d'une grande aide, car la méthode utilisée pour l'apprentissage des poids utilise de l'apprentissage profond. 
-L'approche multi-tâche en termes de traitement sur des intervalles de temps semble être courante dans la bibliographie (j'ai même trouvé que ça), si bien que les modules R et Python des libraires scientifiques utilise cette implémentation dans ce qu'ils appellent une fonction MTLR (MultiTask Logistic Regression).
+La plupart des articles que j'ai trouvés utilisent des modèles multi-classes en plus du multitâche ce qui complique les calculs et la recherche de méthodes d'estimations des poids du modèle. C'est souvent des modèles à destination de la médecine pour faire de la prédiction du temps de survie de patients atteints de maladies graves comme le cancer. Le paradigme du multitâche se manifeste d'ailleurs parfois sur les échelles de temps comme dans cet article pour la médecine \cite{MT-LR-1} où la tâche va être de prédire la probabilité de décès dans un intervalle de temps donné. Cependant, cet article ne va pas nous être d'une grande aide, car la méthode utilisée pour l'apprentissage des poids utilise de l'apprentissage profond. 
+L'approche multitâche en termes de traitement sur des intervalles de temps semble être courante dans la bibliographie, si bien que les modules R et Python des libraires scientifiques utilise cette implémentation dans ce qu'ils appellent une fonction MTLR (MultiTask Logistic Regression).
 
-Ces librairies font référence à un article de prédiction de temps de survie der patients atteints de cancers (Yu et al. (2011)) \cite{Cancer-survival-rate} qui propose une minimisation de l'opposé de la log-vraisenblance par la méthode de Newton. Rien ne semble apparaitre dans la littérature scientifique au sujet d'optimisation de ce genre de modèle par une descente de gradient.
+Ces librairies font référence à un article de prédiction de temps de survie de patients atteints de cancers (Yu et al. (2011)) \cite{Cancer-survival-rate}. L'article propose une minimisation de l'opposé de la log-vraisenblance par la méthode de Newton.
 
 \subsection{Approche par l'analyse discriminante linéaire}\label{LDA_1}
-En se basant sur un de Vincent Vandewalle qui donne une défintiion de l'analyse discriminante linéaire \cite{VV_clustering}, et d'après "The elements of statistical learning" et "Introduction to statistical learning" \cite{elmstatlearn}, on peut définir un modèle de classification de la manière suivante: Prenons un dataset ${({\bf x}_i, y_i)}$ avec ${\bf x}_i \in \mathbb{R}^n$ centrés, et $y_i \in \{1, \cdots, k\}$
+En se basant sur un article de Vincent Vandewalle qui donne une définition de l'analyse discriminante linéaire \cite{VV_clustering}, et d'après "The elements of statistical learning" et "Introduction to statistical learning" \cite{elmstatlearn}, on peut définir un modèle de classification de la manière suivante~: Prenons un dataset ${({\bf x}_i, y_i)}$ avec ${\bf x}_i \in \mathbb{R}^n$ centrés, et $y_i \in \{1, \cdots, k\}$
 $$
 {\bf x}_i | (z_i = k) \hookrightarrow \mathcal{N}_n(\mu_k, \Sigma_k)
 $$
-Le but est d'avoir un classifieur linéaire donc on va chercher à exprimer une relation d'appartenance linéaire en ${\bf x}$ c'est à dire partitionner le dataset tel que ${\bf x}_i \in C_k$ avec $C_k$ l'ensemble des points de la classe $k$. Une manière de faire \cite{elmstatlearn} est de considérer que la covariance est commune. On a donc~: 
+Le but est d'avoir un classifieur linéaire donc on va chercher à exprimer une relation d'appartenance linéaire en ${\bf x}$, c'est-à-dire partitionner le dataset tel que ${\bf x}_i \in C_k$ avec $C_k$ l'ensemble des points de la classe $k$. Une manière de faire \cite{elmstatlearn} est de considérer que la covariance est commune. On a donc~: 
 $$
 {\bf x}_i | (z_i = k) \hookrightarrow \mathcal{N}_n(\mu_k, \Sigma)
 $$
